@@ -92,7 +92,7 @@ void Cal_theta()
         {
             for (int j = 0; j < Matrix.N; j++)
             {
-                double buff = Matrix.A[i][j] * Matrix.theta[t-1][j] * Matrix.B[i][k];
+                double buff = Matrix.A[j][i] * Matrix.theta[t-1][j] * Matrix.B[i][k];
                 if (buff > Matrix.theta[t][i])
                 {
                     Matrix.theta[t][i] = buff;
@@ -120,12 +120,13 @@ void Cal_Xstar()
     Matrix.Xstar = new int[Matrix.T]; // initial
 
     // T timestep
+    double buff = 0;
     for (int j = 0; j < Matrix.N; j++)
     {
-        double buff = 0;
+
         if (Matrix.theta[Matrix.T - 1][j] > buff)
         {
-            //buff = Matrix.theta[Matrix.T - 1][j];
+            buff = Matrix.theta[Matrix.T - 1][j];
             Matrix.Xstar[Matrix.T - 1] = j;
         }
     }
