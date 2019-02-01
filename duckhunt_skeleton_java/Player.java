@@ -1,9 +1,26 @@
+import java.util.ArrayList;
 
 class Player {
 
+    private final double threshold = 0.8;
+    private Round round = new Round();
     public Player() {
+
     }
 
+    class Round {
+        private ArrayList<HMM> birdHMM;
+        private int roundNum;
+        private int birdNum;
+        public Round(){
+            this.roundNum =-1;
+        }
+        public Round(int roundNum, int birdNum){
+            this.roundNum = roundNum;
+            this.birdNum = birdNum;
+            this.birdHMM= new ArrayList<HMM>(birdNum);
+        }
+    }
     /**
      * Shoot!
      *
@@ -30,6 +47,29 @@ class Player {
 //        System.err.println("pState.getNumNewTurns()"+pState.getNumNewTurns());
 //        System.err.println("pState.getRound()"+pState.getRound());
 //        System.err.println("pState.getScore(0)"+pState.getScore(0));
+        if (pState.getRound()!= round.roundNum){
+            round = new Round(pState.getRound(),pState.getNumBirds());
+            for(int i=0; i<round.birdNum;i++){
+                Bird targetBird = pState.getBird(i);
+                int[] obsSeq = readObsSeq(targetBird);
+                round.birdHMM.add(i,new HMM(obsSeq));
+            }
+        }
+        else{
+            for(int i=0; i<round.birdNum;i++){
+                Bird targetBird = pState.getBird(i);
+                int[] obsSeq = readObsSeq(targetBird);
+                HMM hmm = round.birdHMM.get(i);
+                hmm.BaumWelch(obsSeq);
+                hmm.predict_next_Obs();
+                if (hmm.predict!=10) {
+                    return new Action(i,hmm.predict);
+                }
+                else{
+                    return cDontShoot;
+                }
+            }
+        }
 
 
         // This line chooses not to shoot.
@@ -87,4 +127,13 @@ class Player {
     }
 
     public static final Action cDontShoot = new Action(-1, -1);
+
+    private int[] readObsSeq(Bird b){
+        int seqLength = b.getSeqLength();
+        int[] observationSeq = new int[seqLength];
+        for (int k=0; k< seqLength;k++){
+            observationSeq[k]= b.getObservation(k);
+        }
+        return observationSeq;
+    }
 }
