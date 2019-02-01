@@ -1,4 +1,3 @@
-
 class Player {
 
     public Player() {
@@ -24,19 +23,18 @@ class Player {
          * Here you should write your clever algorithms to get the best action.
          * This skeleton never shoots.
          */
-
-//        System.err.println("pState.getNumBirds()"+pState.getNumBirds());
-//        System.err.println("pState.getNumNewTurns()"+pState.getNumNewTurns());
-//        System.err.println("pState.getNumNewTurns()"+pState.getNumNewTurns());
-//        System.err.println("pState.getRound()"+pState.getRound());
-//        System.err.println("pState.getScore(0)"+pState.getScore(0));
-
+    		System.out.println(pState.getNumBirds());
+    		System.out.println(pState.getNumNewTurns());
+    		System.out.println(pState.getNumPlayers());
+    		System.out.println(pState.getRound());
+    		System.out.println(pState.getScore(0));
 
         // This line chooses not to shoot.
-        return cDontShoot;
+        //return cDontShoot;
 
         // This line would predict that bird 0 will move right and shoot at it.
-        // return Action(0, MOVE_RIGHT);
+        //return Action(0, MOVE_RIGHT);
+    		return new Action(0, 0);
     }
 
     /**
