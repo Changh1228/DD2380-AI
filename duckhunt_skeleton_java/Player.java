@@ -1,8 +1,10 @@
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 class Player {
 
     private final double threshold = 0.8;
+    private ArrayList<HMM> standardBirds = new ArrayList<HMM>(6);
     private Round round = new Round();
     public Player() {
 
@@ -58,19 +60,20 @@ class Player {
         else{
             for(int i=0; i<round.birdNum;i++){
                 Bird targetBird = pState.getBird(i);
-                int[] obsSeq = readObsSeq(targetBird);
-                HMM hmm = round.birdHMM.get(i);
-                hmm.BaumWelch(obsSeq);
-                hmm.predict_next_Obs();
-                if (hmm.predict!=10) {
-                    return new Action(i,hmm.predict);
-                }
-                else{
-                    return cDontShoot;
+                if(targetBird.isAlive()){
+                    int[] obsSeq = readObsSeq(targetBird);
+                    HMM hmm = round.birdHMM.get(i);
+                    hmm.BaumWelch(obsSeq);
+                    hmm.predict_next_Obs();
+                    if (hmm.predict!=10) {
+                        return new Action(i,hmm.predict);
+                    }
+                    else{
+                        return cDontShoot;
+                    }
                 }
             }
         }
-
 
         // This line chooses not to shoot.
         return cDontShoot;
@@ -96,11 +99,33 @@ class Player {
          * Here you should write your clever algorithms to guess the species of
          * each bird. This skeleton makes no guesses, better safe than sorry!
          */
-
         int[] lGuess = new int[pState.getNumBirds()];
         for (int i = 0; i < pState.getNumBirds(); ++i)
             lGuess[i] = Constants.SPECIES_UNKNOWN;
+
+        if(round.roundNum == 0){ //No Guess
+            return lGuess;
+        }
+
+        for (int i = 0; i < pState.getNumBirds(); ++i){
+            double maxProb = 0.0;
+            int maxIndex =0;
+            int[] obserSeq = readObsSeq(pState.getBird(i));
+            for (int j =0; j<6; j++){
+                double prob = standardBirds.evaluate(obserSeq);
+                if(prob >maxProb){
+                    maxProb = prob;
+                    maxIndex =j;
+                }
+            }
+
+            if(pDue.remainingMs() < 100 && maxProb > 0.3 ){
+                lGuess[i] = maxIndex;
+            }
+        }
+
         return lGuess;
+
     }
 
     /**
@@ -112,6 +137,7 @@ class Player {
      * @param pDue time before which we must have returned
      */
     public void hit(GameState pState, int pBird, Deadline pDue) {
+
         System.err.println("HIT BIRD!!!");
     }
 
@@ -124,6 +150,18 @@ class Player {
      * @param pDue time before which we must have returned
      */
     public void reveal(GameState pState, int[] pSpecies, Deadline pDue) {
+        for(int i = 0;i<round.birdNum;i++){
+            if(pSpecies[i]>=0 && pSpecies[i] <6){
+                if(standardBirds.get(pSpecies[i]) == null){
+                    //Initiate standard bird
+                    standardBirds.add(pSpecies[i],new HMM(readObsSeq(pState.getBird(i))));
+                }
+                else{
+                    //Train the HMM
+                    standardBirds.get(pSpecies[i]).BaumWelch(readObsSeq(pState.getBird(i)));
+                }
+            }
+        }
     }
 
     public static final Action cDontShoot = new Action(-1, -1);

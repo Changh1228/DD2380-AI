@@ -32,7 +32,7 @@ public class HMM {
         A = new double[N][N];
         rand = 0.1*Math.random();
         for (int i = 0; i < N; i++) {
-            for (int j = 0; j < K; j++) {
+            for (int j = 0; j < N; j++) {
                 A[i][j] = (1 / A[i].length + rand);
                 rand = -rand;
             }
@@ -207,6 +207,7 @@ public class HMM {
         if (max < 0.5) {
             predict = 10; // not sure don't shoot
         }
+        System.err.println(max);
         return predict;
     }
 }
