@@ -112,7 +112,7 @@ class Player {
             int maxIndex =0;
             int[] obserSeq = readObsSeq(pState.getBird(i));
             for (int j =0; j<6; j++){
-                double prob = standardBirds.evaluate(obserSeq);
+                double prob = standardBirds.get(j).evaluation(obserSeq);
                 if(prob >maxProb){
                     maxProb = prob;
                     maxIndex =j;

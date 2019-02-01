@@ -11,44 +11,46 @@ public class HMM {
     private int K = 9;
     private int T;
     private double[] c;
-    private int[] Obs;
+    //private int[] Obs;
     private double[][] Alpha, Beta, Gamma;
     private double[][][] DiGamma;
 
     public int predict = 0;
-    public double[] pi;
-    public double[][] A, B;
+    public double[] pi ;//= {0.241896, 0.266086, 0.249153, 0.242864};
+    public double[][] A;// = {{0.4, 0.2, 0.2, 0.2},{0.2, 0.4, 0.2, 0.2}, {0.2, 0.2, 0.4, 0.2}, {0.2, 0.2, 0.2, 0.4}};
+    public double[][] B;// = {{0.4, 0.2, 0.2, 0.2}, {0.2, 0.4, 0.2, 0.2}, {0.2, 0.2, 0.4, 0.2}, {0.2, 0.2, 0.2, 0.4}};
 
     public HMM(int[] Obs){
-        this.Obs = Obs;
+    //    this.Obs = Obs;
         T = Obs.length;
         pi = new double[N];
-        double rand = 0.1*Math.random();
+        double rand = 0.01*Math.random();
         for (int i = 0; i < N; ++i) {
-            pi[i] = (1 / pi.length +rand);
+            pi[i] = (1.0/ N +rand);
             rand = -rand;
         }
 
         A = new double[N][N];
-        rand = 0.1*Math.random();
+        rand = 0.01*Math.random();
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                A[i][j] = (1 / A[i].length + rand);
+                A[i][j] = (1.0 / N + rand);
                 rand = -rand;
             }
         }
 
         B = new double[N][K];
-        rand = 0.1*Math.random();
         for (int i = 0; i < N; i++) {
+            rand = 0.01*Math.random();
             for (int j = 0; j < K; j++) {
-                B[i][j] = (1 / B[i].length + rand);
+                B[i][j] = (1.0 / K + rand);
                 rand = -rand;
                 if (j == 7) {
                     rand = 0;
                 }
             }
         }
+
         Alpha = new double[T][N];
         Beta = new double[T][N];
         Gamma = new double[T][N];
@@ -56,16 +58,29 @@ public class HMM {
         c = new double[T];
     }
 
-    private void Alpha_pass(){
+    private void Print_Matrix_2D(double[][]Matrix){
+        int X = Matrix.length;
+        int Y = Matrix[0].length;
+
+        for (int i = 0; i < X; i++) {
+            for (int j = 0; j < Y; j++) {
+//                System.out.print(Matrix[i][j] + " ");
+            }
+//            System.out.println();
+        }
+    }
+    private void Alpha_pass(int[] Obs){
         int k = Obs[0]; // first step t=1
         c[0] = 0;
         for (int i = 0; i < N; i++) {
             Alpha[0][i] = B[i][k] * pi[i];
             c[0] += Alpha[0][i];
         }
-        c[0] = 1 / c[0];
+        c[0] = 1.0 / c[0];
+//        System.out.println("c ");
+//        System.out.print(c[0] + " ");
         for (int i = 0; i < N; i++) { // scale Alpha 0
-            A[0][i] *= c[0];
+            Alpha[0][i] *= c[0];
         }
 
         for (int t = 1; t < T; t++) { // t timestep
@@ -78,16 +93,23 @@ public class HMM {
                 }
                 c[t] += Alpha[t][i];
             }
-            c[t] = 1 / c[t];
+            c[t] = 1.0 / c[t];
+//            System.out.print(c[t] + " ");
+
             for (int i = 0; i < N; i++) {
-                A[t][i] *= c[t];
+                Alpha[t][i] *= c[t];
             }
+
         }
+//        System.out.println();
+//        System.out.println("Alpha");
+//        Print_Matrix_2D(Alpha);
+//        System.out.println();
     }
 
-    private void Beta_pass(){
+    private void Beta_pass(int[] Obs){
         for (int i = 0; i < N; i++) { // T timestep
-            Beta[T-1][i] = 1 / c[T-1];
+            Beta[T-1][i] = 1.0 / c[T-1];
         }
 
         for (int t = T-2; t >= 0; t--) { // t timestep
@@ -100,9 +122,12 @@ public class HMM {
                 Beta[t][i] *= c[t];
             }
         }
+//        System.out.println("Beta");
+//        Print_Matrix_2D(Beta);
+//        System.out.println();
     }
 
-    private void Cal_Gammas(){
+    private void Cal_Gammas(int[] Obs){
         for (int t = 0; t < T-1; t++) { // Gammma t
             double denom = 0;
             int k = Obs[t+1];
@@ -128,12 +153,24 @@ public class HMM {
         for (int i = 0; i < N; i++) {
             Gamma[T-1][i] = Alpha[T-1][i] / denom;
         }
+//        System.out.println("Gamma");
+//        Print_Matrix_2D(Gamma);
+//        System.out.println();
+//
+//        System.out.println("DiGamma");
+        for (int i= 0; i < 4 ; i++) {
+//            System.out.println("t="+i);
+//            Print_Matrix_2D(DiGamma[i]);
+        }
     }
 
-    private void Cal_para(){
+    private void Cal_para(int[] Obs){
+//        System.out.println("pi");
         for (int i = 0; i < N; i++) { // estimate pi
             pi[i] = Gamma[0][i];
+//            System.out.print(pi[i]+ " ");
         }
+//        System.out.println();
         for (int i = 0; i < N; i++) { // estimate A
             for (int j = 0; j < N; j++) {
                 double number = 0;
@@ -145,6 +182,8 @@ public class HMM {
                 A[i][j] = number / denom;
             }
         }
+//        System.out.println("A");
+        //Print_Matrix_2D(A);
         for (int i = 0; i < N; i++) { //estimate B
             for (int j = 0; j < K; j++) {
                 double number = 0;
@@ -158,6 +197,8 @@ public class HMM {
                 B[i][j] = number/denom;
             }
         }
+//        System.out.println("B");
+        //Print_Matrix_2D(B);
     }
 
     public void BaumWelch(int[] Obs){ // run prediction
@@ -165,11 +206,12 @@ public class HMM {
         double oldlogProb = Integer.MIN_VALUE;
         double logProb = Integer.MIN_VALUE + 1;
 
-        for (int it = 0; it < 99999 && logProb > oldlogProb; it++) {
-            Alpha_pass();
-            Beta_pass();
-            Cal_Gammas();
-            Cal_para();
+        for (int it = 0; it < 2 && logProb > oldlogProb; it++) {
+//            System.out.println("oldlogProb" + oldlogProb +" "+ logProb);
+            Alpha_pass(Obs);
+            Beta_pass(Obs);
+            Cal_Gammas(Obs);
+            Cal_para(Obs);
 
             oldlogProb = logProb; // cal logProb
             logProb = 0;
@@ -207,7 +249,17 @@ public class HMM {
         if (max < 0.5) {
             predict = 10; // not sure don't shoot
         }
-        System.err.println(max);
+//        System.out.println(max);
         return predict;
+    }
+
+    public double evaluation (int[] obserSeq){
+        //this.Obs =obserSeq;
+        Alpha_pass(obserSeq);
+        double sum = 0.0;
+        for(int i=0; i<N;i++){
+            sum += Alpha[T][i];
+        }
+        return sum;
     }
 }
