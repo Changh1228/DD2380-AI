@@ -53,11 +53,11 @@ public class HMM {
     public void init (int[] Obs){
       this.T = Obs.length;
      // System.err.println(T);
-     System.err.println("Obs");
-     for (int i = 0; i< T; i++) {
-         System.err.print(Obs[i] + " ");
-     }
-     System.err.println(" ");
+//     System.err.println("Obs");
+//     for (int i = 0; i< T; i++) {
+//         System.err.print(Obs[i] + " ");
+//     }
+//     System.err.println(" ");
       Alpha = new double[T][N];
       Beta = new double[T][N];
       Gamma = new double[T][N];
@@ -89,8 +89,8 @@ public class HMM {
         for (int i = 0; i < N; i++) { // scale Alpha 0
             Alpha[0][i] *= c[0];
         }
-
-        for (int t = 1; t < T; t++) { // t timestep
+        int min = Obs.length > T? T:Obs.length;
+        for (int t = 1; t <min ; t++) { // t timestep
             c[t] = 0;
             k = Obs[t];
             for (int i = 0; i < N; i++) {
@@ -218,7 +218,7 @@ public class HMM {
         init(Obs);
         double oldlogProb = Integer.MIN_VALUE;
         double logProb = Integer.MIN_VALUE + 1;
-        for (int it = 0; it < 999999 && logProb > oldlogProb; it++) {
+        for (int it = 0; it < 999999 && logProb > oldlogProb+0.001; it++) {
             //System.out.println("oldlogProb" + oldlogProb +" "+ logProb);
             Alpha_pass(Obs);
             Beta_pass(Obs);
@@ -263,7 +263,7 @@ public class HMM {
                 predict = i;
             }
         }
-        if (max < 0.3 ) {
+        if (max < 0.6 ) {
             predict = 10; // not sure don't shoot
         }
         //System.err.println(predict);
@@ -274,7 +274,7 @@ public class HMM {
     Alpha_pass(obserSeq);
     double sum = 0.0;
     for(int i=0; i<N;i++){
-        sum += Alpha[T][i];
+        sum += Alpha[T-1][i];
     }
     return sum;
 }
