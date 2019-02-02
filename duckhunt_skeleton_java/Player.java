@@ -1,5 +1,6 @@
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 class Player {
 
@@ -73,6 +74,7 @@ class Player {
                   Bird targetBird = pState.getBird(i);
                   if(targetBird.isAlive()){
                       int[] obsSeq = readObsSeq(targetBird);
+                      System.err.println("Obs::::" + obsSeq.length);
                       HMM hmm = round.birdHMM.get(i);
                       //System.err.println(targetBird.getLastObservation());
                       hmm.BaumWelch(obsSeq);
@@ -129,6 +131,7 @@ class Player {
             int[] obserSeq = readObsSeq(pState.getBird(i));
             for (int j =0; j<6; j++){
               if(standardBirds.get(j)!=null){
+                  System.err.println("Evaluation");
                 double prob = standardBirds.get(j).evaluation(obserSeq);
                 if(prob >maxProb){
                     maxProb = prob;
@@ -172,9 +175,11 @@ class Player {
             if(pSpecies[i]>=0 && pSpecies[i] <6){
                 if(standardBirds.get(pSpecies[i]) == null){
                     //Initiate standard bird
+                    System.err.println("add standard");
                     standardBirds.put(pSpecies[i],new HMM());
                 }
-                    standardBirds.get(pSpecies[i]).BaumWelch(readObsSeq(pState.getBird(i)));
+                System.err.println("train standard");
+                    standardBirds.get(pSpecies[i]).BaumWelch(readObsSeqForGuess(pState.getBird(i)));
             }
         }
     }
@@ -188,5 +193,15 @@ class Player {
             observationSeq[k]= b.getObservation(k);
         }
         return observationSeq;
+    }
+
+    private int[] readObsSeqForGuess(Bird b){
+        int[] oldObs = readObsSeq(b);
+        int i=0;
+        for(i =0; i<oldObs.length;i++){
+            if(oldObs[i]==-1)
+                break;
+        }
+        return Arrays.copyOf(oldObs,i);
     }
 }
