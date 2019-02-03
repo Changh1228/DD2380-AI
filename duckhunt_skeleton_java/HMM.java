@@ -360,12 +360,11 @@ public class HMM {
         return sum;
     }
     public double evaluation (int[] obserSeq){
-        int min = obserSeq.length > T? T:obserSeq.length;
-
+        init(obserSeq);
         Alpha_pass_for_evaluation(obserSeq);
         double sum = 0.0;
         for(int i=0; i<N;i++){
-            sum += Alpha[min-1][i];
+            sum += Alpha[T-1][i];
            // System.err.print(sum+ " ");
         }
         //System.err.print("ABC"+pi[0]+" "+A[0][0]+" "+B[0][0]+" "+c[0]);
