@@ -6,11 +6,15 @@ class Player {
 
     private HashMap<Integer,HMM> standardBirds = new HashMap<Integer,HMM>();
     private Round round = new Round();
-    private double blackBirdAveProb=0.0;
-    private int numBirdsSeen=0;
+    private double[][] aveProbList = new double[6][2];
+
 
     public Player() {
-
+        for(int i =0; i<6; i++){
+            for(int j=0; j<2;j++){
+                aveProbList[i][j]=0.0;
+            }
+        }
     }
 
     class Round {
@@ -20,6 +24,7 @@ class Player {
         private int timestamp;
         private int lastHit;
         private int[] timeToWait;
+        private double[][] probBuffer;
 
         public Round(){
             this.roundNum =-1;
@@ -31,6 +36,12 @@ class Player {
             this.timestamp = 0;
             this.lastHit = -1;
             this.timeToWait =new int[birdNum];
+            probBuffer =new double [birdNum][2];
+            for(int i =0; i<birdNum; i++){
+                for(int j=0; j<2;j++){
+                    this.probBuffer[i][j]=0.0;
+                }
+            }
         }
     }
     /**
@@ -144,26 +155,29 @@ class Player {
         for (int i = 0; i < pState.getNumBirds(); ++i){
             double maxProb = 0.0;
             int maxIndex =0;
-            double otherProbSum=0.0;
             int[] obserSeq = readObsSeqForGuess(pState.getBird(i));
             for (int j =0; j<6; j++){
               if(standardBirds.get(j)!=null){
                  // System.err.println("Evaluation");
                 double prob = standardBirds.get(j).evaluation(obserSeq);
-                  otherProbSum +=prob;
-                System.err.println(prob);
+                //System.err.println(prob);
                 if(prob >maxProb){
                     maxProb = prob;
                     maxIndex =j;
                 }
               }
             }
-            otherProbSum -=maxProb;
-            blackBirdAveProb = (blackBirdAveProb*numBirdsSeen + otherProbSum)/++numBirdsSeen;
-
+            //aveProbList[maxIndex][1] =  (aveProbList[maxIndex][1]*aveProbList[maxIndex][0] + maxProb)/++aveProbList[maxIndex][0];
             //if(pDue.remainingMs() < 100 && maxProb > 0.2 ){
-                lGuess[i] = maxIndex;
+            lGuess[i] = maxIndex;
+            round.probBuffer[i][0]=maxIndex;
+            round.probBuffer[i][1]=maxProb;
+
             //}
+        }
+        for(int i =0;i<aveProbList.length;i++){
+            System.err.print("Guess: "+aveProbList[i][0]);
+            System.err.print("Guess: "+aveProbList[i][1]);
         }
         for(int i =0;i<lGuess.length;i++){
             System.err.print("Guess: "+lGuess[i]);
@@ -207,6 +221,13 @@ class Player {
                     standardBirds.get(pSpecies[i]).BaumWelch(dataToTrain);
             }
         }
+
+        //Store average probabilities
+        for(int i =0;i<round.birdNum;i++){
+            if(round.probBuffer[i][0]==pSpecies[i]){
+                aveProbList[pSpecies[i]][1] =  (aveProbList[pSpecies[i]][1]*aveProbList[pSpecies[i]][0] + round.probBuffer[i][1])/++aveProbList[pSpecies[i]][0];
+            }
+        }
     }
 
     public static final Action cDontShoot = new Action(-1, -1);
@@ -221,26 +242,28 @@ class Player {
     }
 
     private boolean checkIfBlackBird(int[] obs){
-        if(standardBirds.get(Constants.SPECIES_BLACK_STORK)!=null) {
-            // System.err.println("Evaluation");
-            double prob = standardBirds.get(Constants.SPECIES_BLACK_STORK).evaluation(obs);
-            if(prob > 0.1){
-                return true;
-            }
-        }
-        else{
-            double probSum=0.0;
-            for (int j =0; j<6; j++){
-                if(standardBirds.get(j)!=null){
-                    // System.err.println("Evaluation");
-                    double prob = standardBirds.get(j).evaluation(obs);
-                    probSum +=prob;
-                }
-            }
-            if (probSum<blackBirdAveProb){
-                return true;
-            }
-        }
+//        if(standardBirds.get(Constants.SPECIES_BLACK_STORK)!=null) {
+//            // System.err.println("Evaluation");
+//            double prob = standardBirds.get(Constants.SPECIES_BLACK_STORK).evaluation(obs);
+//            if(prob > 0.1){
+//                return true;
+//            }
+//        }
+//        else{
+//            double prob =0.0;
+//            for (int j =0; j<6; j++){
+//                if(standardBirds.get(j)!=null){
+//                    // System.err.println("Evaluation");
+//                    prob =standardBirds.get(j).evaluation(obs);
+//                }
+//                if (prob>aveProbList[j][1]){
+//                    return false;
+//                }
+//            }
+//            //System.err.println("probSum<blackBirdAveProb: "+probSum+" "+blackBirdAveProb);
+//
+//        }
+//        return true;
         return false;
     }
 
