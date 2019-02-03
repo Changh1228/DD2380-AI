@@ -14,7 +14,7 @@ public class HMM {
     private double[][] Alpha, Beta, Gamma;
     private double[][][] DiGamma;
 
-    public int predict = 0;
+    public int predict = 10;
     public double[] pi ;//= {0.241896, 0.266086, 0.249153, 0.242864};
     public double[][] A;// = {{0.4, 0.2, 0.2, 0.2},{0.2, 0.4, 0.2, 0.2}, {0.2, 0.2, 0.4, 0.2}, {0.2, 0.2, 0.2, 0.4}};
     public double[][] B;// = {{0.4, 0.2, 0.2, 0.2}, {0.2, 0.4, 0.2, 0.2}, {0.2, 0.2, 0.4, 0.2}, {0.2, 0.2, 0.2, 0.4}};
@@ -89,6 +89,7 @@ public class HMM {
         for (int i = 0; i < N; i++) { // scale Alpha 0
             Alpha[0][i] *= c[0];
         }
+
         int min = Obs.length > T? T:Obs.length;
         for (int t = 1; t <min ; t++) { // t timestep
             c[t] = 0;
@@ -97,7 +98,7 @@ public class HMM {
                 Alpha[t][i] = 0;
                 for (int j = 0; j < N; j++) {
                     //try{
-                    Alpha[t][i] += ( Alpha[t-1][j] * A[j][i] * B[i][k] );
+                    Alpha[t][i] += ( Alpha[t-1][j] * A[j][i] * B[i][k]);
                 //}
                 /*catch(Exception e){
                     System.err.println(i +" "+ t +" "+ j +" " + k);
@@ -110,6 +111,33 @@ public class HMM {
 
             for (int i = 0; i < N; i++) {
                 Alpha[t][i] *= c[t];
+            }
+
+        }
+        /*System.out.println();
+        System.out.println("Alpha");
+        Print_Matrix_2D(Alpha);
+        System.out.println();*/
+    }
+
+    private void Alpha_pass_for_evaluation(int[] Obs){
+        int k = Obs[0]; // first step t=1
+        for (int i = 0; i < N; i++) {
+            Alpha[0][i] = B[i][k] * pi[i];
+        }
+        int min = Obs.length > T? T:Obs.length;
+        for (int t = 1; t <min ; t++) { // t timestep
+            k = Obs[t];
+            for (int i = 0; i < N; i++) {
+                Alpha[t][i] = 0;
+                for (int j = 0; j < N; j++) {
+                    //try{
+                    Alpha[t][i] += ( Alpha[t-1][j] * A[j][i] * B[i][k]);
+                    //}
+                /*catch(Exception e){
+                    System.err.println(i +" "+ t +" "+ j +" " + k);
+                }*/
+                }
             }
 
         }
@@ -231,14 +259,41 @@ public class HMM {
                 logProb += Math.log(c[i]);
             }
             logProb = -logProb;
-        }
 
+            avoidZero(A);
+            avoidZero(B);
+        }
+        if(Double.isNaN(A[0][0])){
+            System.err.println("!!!!!!!");
+        }
+    }
+
+    public void BaumWelchForGuess(int[] Obs){ // run prediction
+        //Init(double[] Obs);
+        init(Obs);
+        double oldlogProb = Integer.MIN_VALUE;
+        double logProb = Integer.MIN_VALUE + 1;
+        for (int it = 0; it < 999999 && logProb > oldlogProb+0.001; it++) {
+            //System.out.println("oldlogProb" + oldlogProb +" "+ logProb);
+            Alpha_pass(Obs);
+            Beta_pass(Obs);
+            Cal_Gammas(Obs);
+            Cal_para(Obs);
+
+            oldlogProb = logProb; // cal logProb
+            logProb = 0;
+            for (int i = 0; i < T; i++) {
+                logProb += Math.log(c[i]);
+            }
+            logProb = -logProb;
+        }
+        avoidZero(A);
+        avoidZero(B);
     }
     public double predict_next_Obs(){
         // predict next action
         double[] buff = pi;
         double[] pi_t = new double[N];
-
         for (int t = 0; t < T; t++) {
             for (int i=0; i<N; i++) {
                 pi_t[i]=0;// init pit
@@ -263,19 +318,58 @@ public class HMM {
                 predict = i;
             }
         }
-        if (max < 0.6 ) {
-            predict = 10; // not sure don't shoot
-        }
-        //System.err.println(predict);
+//        if(max==0){
+//            System.err.println("pi"+pi_t[0]);
+//            //Print_Matrix_2D(DiGamma[0]);
+//            System.err.println("C"+ c[0]);
+//
+//        }
+//        else
+//        System.err.println("max: "+max);
         return max;
 
     }
-    public double evaluation (int[] obserSeq){
-    Alpha_pass(obserSeq);
-    double sum = 0.0;
-    for(int i=0; i<N;i++){
-        sum += Alpha[T-1][i];
+
+    public void avoidZero(double[][] matrix){
+        for(int i =0; i<matrix.length;i++){
+            for(int j =0; j<matrix[0].length;j++){
+                if (matrix[i][j]<0.00001){
+                    matrix[i][j]=0.00001;
+                }
+            }
+        }
+        normalize(matrix);
     }
-    return sum;
+
+    public static double[][] normalize(double m[][]) {
+        double[][] m2 = new double[m.length][m[0].length];
+        for (int row = 0; row < m.length; row++) {
+            double sum = sum(m[row]);
+            if (sum != 0)
+                for (int col = 0; col < m[row].length; col++) {
+                    m2[row][col] = m[row][col] / sum;
+                }
+        }
+        return m2;
+    }
+
+    public static double sum(double[] prob) {
+        double sum = 0;
+        for (double d : prob)
+            sum += d;
+        return sum;
+    }
+    public double evaluation (int[] obserSeq){
+        int min = obserSeq.length > T? T:obserSeq.length;
+
+        Alpha_pass_for_evaluation(obserSeq);
+        double sum = 0.0;
+        for(int i=0; i<N;i++){
+            sum += Alpha[min-1][i];
+           // System.err.print(sum+ " ");
+        }
+        //System.err.print("ABC"+pi[0]+" "+A[0][0]+" "+B[0][0]+" "+c[0]);
+
+        return sum;
 }
 }

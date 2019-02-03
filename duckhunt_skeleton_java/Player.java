@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 class Player {
 
-    private final double threshold = 0.8;
     private HashMap<Integer,HMM> standardBirds = new HashMap<Integer,HMM>();
     private Round round = new Round();
+    private double blackBirdAveProb=0.0;
+    private int numBirdsSeen=0;
 
     public Player() {
 
@@ -66,19 +67,20 @@ class Player {
                 //round.birdHMM.get(i).Print_Matrix_2D(round.birdHMM.get(i).A);
             }
         }
-        if(round.timestamp >20){
+        if(round.timestamp >50){
             //System.err.println(pState.getRound()+" " + pState.getRound());
           if (pState.getRound()!= round.roundNum){
 
           }
           else {
-              double maxProbToHit = 0.6;
+              double maxProbToHit = 0.5;
               int indexToHit = -1;
               for(int i=0; i<round.birdNum;i++){
                   Bird targetBird = pState.getBird(i);
-                  if(targetBird.isAlive()){
+                  int[] obsSeq = readObsSeq(targetBird);
+                  if(targetBird.isAlive() && !checkIfBlackBird(obsSeq)){
                       if(i==round.lastHit){
-                          round.timeToWait[i]=10;
+                          round.timeToWait[i]=5;
                           //System.err.println("timestamp:"+targetBird.getSeqLength());
                       }
 
@@ -86,8 +88,6 @@ class Player {
                           round.timeToWait[i]-=1;
                           continue;
                       }
-
-                      int[] obsSeq = readObsSeq(targetBird);
                       //System.err.println("Obs::::" + obsSeq.length);
                       HMM hmm = round.birdHMM.get(i);
                       //System.err.println(targetBird.getLastObservation());
@@ -141,28 +141,33 @@ class Player {
             return lGuess;
         }
 
-//        for (int i = 0; i < pState.getNumBirds(); ++i){
-//            double maxProb = 0.0;
-//            int maxIndex =0;
-//            int[] obserSeq = readObsSeqForGuess(pState.getBird(i));
-//            for (int j =0; j<6; j++){
-//              if(standardBirds.get(j)!=null){
-//                 // System.err.println("Evaluation");
-//                double prob = standardBirds.get(j).evaluation(obserSeq);
-//                if(prob >maxProb){
-//                    maxProb = prob;
-//                    maxIndex =j;
-//                }
-//              }
-//            }
-//
-//            if(pDue.remainingMs() < 100 && maxProb > 0.3 ){
-//                lGuess[i] = maxIndex;
-//            }
-//        }
-//        for(int i =0;i<lGuess.length;i++){
-//            System.err.print("Guess: "+lGuess[i]);
-//        }
+        for (int i = 0; i < pState.getNumBirds(); ++i){
+            double maxProb = 0.0;
+            int maxIndex =0;
+            double otherProbSum=0.0;
+            int[] obserSeq = readObsSeqForGuess(pState.getBird(i));
+            for (int j =0; j<6; j++){
+              if(standardBirds.get(j)!=null){
+                 // System.err.println("Evaluation");
+                double prob = standardBirds.get(j).evaluation(obserSeq);
+                  otherProbSum +=prob;
+                System.err.println(prob);
+                if(prob >maxProb){
+                    maxProb = prob;
+                    maxIndex =j;
+                }
+              }
+            }
+            otherProbSum -=maxProb;
+            blackBirdAveProb = (blackBirdAveProb*numBirdsSeen + otherProbSum)/++numBirdsSeen;
+
+            //if(pDue.remainingMs() < 100 && maxProb > 0.2 ){
+                lGuess[i] = maxIndex;
+            //}
+        }
+        for(int i =0;i<lGuess.length;i++){
+            System.err.print("Guess: "+lGuess[i]);
+        }
         return lGuess;
 
     }
@@ -193,11 +198,13 @@ class Player {
             if(pSpecies[i]>=0 && pSpecies[i] <6){
                 if(standardBirds.get(pSpecies[i]) == null){
                     //Initiate standard bird
-                    System.err.println("add standard");
+                    //System.err.println("add standard");
                     standardBirds.put(pSpecies[i],new HMM());
                 }
-                System.err.println("train standard");
-                    standardBirds.get(pSpecies[i]).BaumWelch(readObsSeqForGuess(pState.getBird(i)));
+                //System.err.println("train standard");
+                int[] dataToTrain = readObsSeqForGuess(pState.getBird(i));
+                if(dataToTrain.length>70)
+                    standardBirds.get(pSpecies[i]).BaumWelch(dataToTrain);
             }
         }
     }
@@ -211,6 +218,30 @@ class Player {
             observationSeq[k]= b.getObservation(k);
         }
         return observationSeq;
+    }
+
+    private boolean checkIfBlackBird(int[] obs){
+        if(standardBirds.get(Constants.SPECIES_BLACK_STORK)!=null) {
+            // System.err.println("Evaluation");
+            double prob = standardBirds.get(Constants.SPECIES_BLACK_STORK).evaluation(obs);
+            if(prob > 0.1){
+                return true;
+            }
+        }
+        else{
+            double probSum=0.0;
+            for (int j =0; j<6; j++){
+                if(standardBirds.get(j)!=null){
+                    // System.err.println("Evaluation");
+                    double prob = standardBirds.get(j).evaluation(obs);
+                    probSum +=prob;
+                }
+            }
+            if (probSum<blackBirdAveProb){
+                return true;
+            }
+        }
+        return false;
     }
 
     private int[] readObsSeqForGuess(Bird b){
