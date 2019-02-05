@@ -85,12 +85,14 @@ class Player {
 
           }
           else {
-              double maxProbToHit = 0.2;
+              double maxProbToHit = 0.4;
               int indexToHit = -1;
+              int[] bird_spec;
+              bird_spec = guess(pState, pDue);
               for(int i=0; i<round.birdNum;i++){
                   Bird targetBird = pState.getBird(i);
                   int[] obsSeq = readObsSeq(targetBird);
-                  if(targetBird.isAlive() ){
+                  if(targetBird.isAlive() && bird_spec[i] != 5){
                       if(i==round.lastHit){
                           round.timeToWait[i]=5;
                           //System.err.println("timestamp:"+targetBird.getSeqLength());
@@ -100,6 +102,7 @@ class Player {
                           round.timeToWait[i]-=1;
                           continue;
                       }
+
                       //System.err.println("Obs::::" + obsSeq.length);
                       HMM hmm = round.birdHMM.get(i);
                       //System.err.println(targetBird.getLastObservation());
@@ -153,40 +156,42 @@ class Player {
         if(round.roundNum == 0){ //No Guess
             return lGuess;
         }
-
-        for (int i = 0; i < pState.getNumBirds(); ++i){
-            double maxProb = 0.0;
+        for (int i = 0; i < pState.getNumBirds(); ++i){ // num of bird
+            double[] maxProb = new double[6];
             int maxIndex =0;
             int maxIndex_spec = 0;
+            double temp_max = 0;
             int[] obserSeq = readObsSeqForGuess(pState.getBird(i));
-            for (int j =0; j<6; j++){
-              if(standardBirds.get(j)!=null){
-                 // System.err.println("Evaluation");
-                double max_spec = 0;
-                for (int k = 0; k <standardBirds.get(j).size(); k++) {
-                    double prob_spec = standardBirds.get(j).get(k).evaluation(obserSeq);
-                    if(prob_spec >max_spec){
-                        max_spec = prob_spec;
-                        maxIndex_spec = k;
+            for (int j =0; j<6; j++){ // num of spec
+                maxProb[j] = 0;
+                if(standardBirds.get(j)!=null){
+                    double max_spec = 0;
+                    for (int k = 0; k <standardBirds.get(j).size(); k++) { // num of model in one spec
+                        double prob_spec = standardBirds.get(j).get(k).evaluation(obserSeq);
+                        if(prob_spec >max_spec){ // max prob of model in one spec
+                            max_spec = prob_spec;
+                            maxIndex_spec = k;
+                        }
+                    }
+                    maxProb[j] = max_spec;
+
+                    if(max_spec >temp_max){ // max prob of spec
+                        maxIndex =j;
+                        temp_max = max_spec;
                     }
                 }
-                //System.err.println(prob);
-                if(max_spec >maxProb){
-                    maxProb = max_spec;
-                    maxIndex =j;
-                }
-              }
             }
+            maxProb = HMM.normalize_1D(maxProb);
             round.indexBuffer[i][0]=maxIndex;
             round.indexBuffer[i][1]=maxIndex_spec;
-            lGuess[i] = maxIndex;
 
-            //}
+            System.err.println(" " + maxProb[maxIndex]);
+            if (maxProb[maxIndex] < 0.9) {
+                lGuess[i] = 5;
+            }
+            lGuess[i] = maxIndex;
         }
-        for(int i =0;i<aveProbList.length;i++){
-            System.err.print("Guess: "+aveProbList[i][0]);
-            System.err.print("Guess: "+aveProbList[i][1]);
-        }
+
         for(int i =0;i<lGuess.length;i++){
             System.err.print("Guess: "+lGuess[i]);
         }

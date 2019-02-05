@@ -7,7 +7,7 @@
 import java.util.*;
 public class HMM {
 
-    private int N = 1;
+    private int N = 6;
     private int K = 9;
     private int T;
     private double[] c;
@@ -291,14 +291,6 @@ public class HMM {
                predict = i;
            }
        }
-//        if(max==0){
-//            System.err.println("pi"+pi_t[0]);
-//            //Print_Matrix_2D(DiGamma[0]);
-//            System.err.println("C"+ c[0]);
-//
-//        }
-//        else
-//        System.err.println("max: "+max);
        return max;
         /*int min = Obs.length > T? T:Obs.length;
         Alpha_pass(Obs); // get state right now
