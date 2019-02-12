@@ -76,17 +76,17 @@ int main(int argc, char **argv)
 		}
 
         // Check if output state is correct
-        std::vector<TICTACTOE::GameState> output_states; 
-        input_state.findPossibleMoves(output_states); 
-        bool output_state_correct = false; 
-        for (unsigned int i = 0; i < output_states.size(); ++i) 
-                if (output_state.isEqual(output_states[i])) 
+        std::vector<TICTACTOE::GameState> output_states;
+        input_state.findPossibleMoves(output_states);
+        bool output_state_correct = false;
+        for (unsigned int i = 0; i < output_states.size(); ++i)
+                if (output_state.isEqual(output_states[i]))
                 {
                         output_state_correct = true;
                         break;
                 }
-        if (!output_state_correct) { 
-                exit(134); 
+        if (!output_state_correct) {
+                exit(134);
         }
 
         // Print the output state

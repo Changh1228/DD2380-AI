@@ -9,7 +9,11 @@ g++ *.cpp -Wall -o TTT
 
 # Play against self in same terminal
 mkfifo pipe
-./TTT init verbose < pipe | ./TTT > pipe
+
+#Note that if you work on for example computers that use the AFS filesystem, you cannot create named pipes like above. However, you can create your named pipes in the /tmp directory.
+mkfifo /tmp/pipe
+
+./TTT init verbose < /tmp/pipe | ./TTT > /tmp/pipe
 
 # Play against self in two different terminals
 # Terminal 1:
@@ -25,5 +29,3 @@ If you want two algorithms to play against each other, create two folders, folde
 mkfifo pipe
 
 ./folder1/TTT init verbose < pipe | ./folder2/TTT > pipe
-
-
