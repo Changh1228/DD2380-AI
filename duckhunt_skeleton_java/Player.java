@@ -6,15 +6,8 @@ class Player {
 
     private HashMap<Integer,ArrayList<HMM>> standardBirds = new HashMap<Integer,ArrayList<HMM>>();
     private Round round = new Round();
-    private double[][] aveProbList = new double[6][2];
-
 
     public Player() {
-        for(int i =0; i<6; i++){
-            for(int j=0; j<2;j++){
-                aveProbList[i][j]=0.0;
-            }
-        }
     }
 
     class Round {
@@ -73,22 +66,23 @@ class Player {
         if(pState.getRound()!= round.roundNum){
             System.err.println("round name " + pState.getRound());
             round = new Round(pState.getRound(),pState.getNumBirds());
-            for(int i=0; i<round.birdNum;i++){
-                round.birdHMM.add(new HMM());
-                //System.err.println("init");
-                //round.birdHMM.get(i).Print_Matrix_2D(round.birdHMM.get(i).A);
-            }
+//            for(int i=0; i<round.birdNum;i++){
+//                round.birdHMM.add(new HMM());
+//                //System.err.println("init");
+//                //round.birdHMM.get(i).Print_Matrix_2D(round.birdHMM.get(i).A);
+//            }
         }
-        if(round.timestamp >85){
+        if(round.timestamp >86){
             //System.err.println(pState.getRound()+" " + pState.getRound());
-          if (pState.getRound()!= round.roundNum){
-
-          }
-          else {
+          if (pState.getRound() == round.roundNum) {
               double maxProbToHit = 0.4;
               int indexToHit = -1;
               int[] bird_spec;
               bird_spec = guess(pState, pDue);
+//              for (int c = 0; c < 6; c++) {
+//                  if(standardBirds.containsKey(c))
+//                      System.err.println("SIZE: "+standardBirds.get(c).size());
+//              }
               for(int i=0; i<round.birdNum;i++){
                   Bird targetBird = pState.getBird(i);
                   int[] obsSeq = readObsSeq(targetBird);
@@ -102,12 +96,28 @@ class Player {
                           round.timeToWait[i]-=1;
                           continue;
                       }
-
+                      HMM hmm = new HMM();
+                      if(standardBirds.containsKey(round.indexBuffer[i][0]))
+//                          try {
+                            hmm = standardBirds.get(round.indexBuffer[i][0]).get(round.indexBuffer[i][1]).copy();
+//                          }
+//                          catch(Exception e ){
+//                          int[][] tmp = round.indexBuffer;
+//                              System.err.println("I:" +i);
+//
+//                              for (int c = 0; c < 6; c++) {
+//                                  System.err.println(standardBirds.get(round.indexBuffer[c][0]).size());
+//                              }
+//                              System.exit(-1);
+//                          }
+                      //System.err.println(round.indexBuffer[i][0] +  " " + round.indexBuffer[i][1]);
                       //System.err.println("Obs::::" + obsSeq.length);
-                      HMM hmm = round.birdHMM.get(i);
                       //System.err.println(targetBird.getLastObservation());
-                      hmm.BaumWelch(obsSeq);
+                      hmm.BaumWelchForGuess(obsSeq);
+                      round.birdHMM.add(i,hmm);
                       double prob = hmm.predict_next_Obs();
+                     // System.err.println(prob);
+
                       //hmm.Print_Matrix_2D(hmm.A);
                       if (prob>maxProbToHit){
                           maxProbToHit = prob;
@@ -157,44 +167,56 @@ class Player {
             return lGuess;
         }
         for (int i = 0; i < pState.getNumBirds(); ++i){ // num of bird
-            double[] maxProb = new double[6];
+            double[] maxProb;
+            maxProb = new double[6];
             int maxIndex =0;
             int maxIndex_spec = 0;
             double temp_max = 0;
             int[] obserSeq = readObsSeqForGuess(pState.getBird(i));
+            int[] kList = new int[6];
             for (int j =0; j<6; j++){ // num of spec
                 maxProb[j] = 0;
                 if(standardBirds.get(j)!=null){
                     double max_spec = 0;
+                    kList[j] =0;
                     for (int k = 0; k <standardBirds.get(j).size(); k++) { // num of model in one spec
                         double prob_spec = standardBirds.get(j).get(k).evaluation(obserSeq);
                         if(prob_spec >max_spec){ // max prob of model in one spec
                             max_spec = prob_spec;
-                            maxIndex_spec = k;
+//                            System.err.println("max_spec: "+max_spec);
+//                            System.err.println("k: "+k);
+                            maxIndex_spec=k;
                         }
                     }
+                    kList[j] = maxIndex_spec;
                     maxProb[j] = max_spec;
-
                     if(max_spec >temp_max){ // max prob of spec
                         maxIndex =j;
                         temp_max = max_spec;
                     }
                 }
             }
+//            for(int a =0;a <maxProb.length; a++){
+//
+//                if(maxProb[a]!=0)
+//                    maxProb[a] = 1/(- Math.log(maxProb[a]));
+//                //System.err.println(maxProb[a]);
+//            }
             maxProb = HMM.normalize_1D(maxProb);
             round.indexBuffer[i][0]=maxIndex;
-            round.indexBuffer[i][1]=maxIndex_spec;
+            round.indexBuffer[i][1]=kList[maxIndex];
+//            System.err.println("round.indexBuffer[i][1]: "+round.indexBuffer[i][1]);
+            lGuess[i] = maxIndex;
 
-            System.err.println(" " + maxProb[maxIndex]);
-            if (maxProb[maxIndex] < 0.9) {
+            //System.err.println(" " + maxProb[maxIndex]);
+            if (maxProb[maxIndex] < 0.22) {
                 lGuess[i] = 5;
             }
-            lGuess[i] = maxIndex;
         }
-
-        for(int i =0;i<lGuess.length;i++){
-            System.err.print("Guess: "+lGuess[i]);
-        }
+//
+//        for(int i =0;i<lGuess.length;i++){
+//            System.err.print("Guess: "+lGuess[i]);
+//        }
         return lGuess;
 
     }
@@ -229,9 +251,12 @@ class Player {
                 }
                 HMM tmp=new HMM();
                 int[] dataToTrain = readObsSeqForGuess(pState.getBird(i));
-                if(dataToTrain.length>95)
+                if(dataToTrain.length>80){
                     tmp.BaumWelch(dataToTrain);
+                    //System.err.println("Adding model..."+pSpecies[i]);
                     standardBirds.get(pSpecies[i]).add(tmp);
+                    //System.err.println("Size of list..."+standardBirds.get(pSpecies[i]).size());
+                }
             }
         }
     }

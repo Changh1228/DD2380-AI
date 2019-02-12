@@ -7,7 +7,7 @@
 import java.util.*;
 public class HMM {
 
-    private int N = 6;
+    private int N = 2;
     private int K = 9;
     private int T;
     private double[] c;
@@ -18,6 +18,14 @@ public class HMM {
     public double[] pi ;//= {0.241896, 0.266086, 0.249153, 0.242864};
     public double[][] A;// = {{0.4, 0.2, 0.2, 0.2},{0.2, 0.4, 0.2, 0.2}, {0.2, 0.2, 0.4, 0.2}, {0.2, 0.2, 0.2, 0.4}};
     public double[][] B;// = {{0.4, 0.2, 0.2, 0.2}, {0.2, 0.4, 0.2, 0.2}, {0.2, 0.2, 0.4, 0.2}, {0.2, 0.2, 0.2, 0.4}};
+
+    public HMM copy(){
+        HMM hmm = new HMM();
+        hmm.A = this.A;
+        hmm.B = this.B;
+        hmm.pi = this.pi;
+        return hmm;
+    }
 
     public HMM(){
         pi = new double[N];
@@ -246,7 +254,7 @@ public class HMM {
         init(Obs);
         double oldlogProb = Integer.MIN_VALUE;
         double logProb = Integer.MIN_VALUE + 1;
-        for (int it = 0; it < 200 && logProb > oldlogProb+0.001; it++) {
+        for (int it = 0; it < 50 && logProb > oldlogProb+0.001; it++) {
             //System.out.println("oldlogProb" + oldlogProb +" "+ logProb);
             Alpha_pass(Obs);
             Beta_pass(Obs);
