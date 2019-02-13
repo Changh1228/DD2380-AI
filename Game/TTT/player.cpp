@@ -1,14 +1,17 @@
 #include "player.hpp"
 #include <climits>
 #include <cstdlib>
+#include <algorithm>
 
 namespace TICTACTOE
 {
-
-int eval(const GameState &pState)
+uint8_t getTheOtherPlayer(uint8_t player){
+    return (player == CELL_X) ? CELL_O : CELL_X;
+}
+int eval(const GameState &pState, uint8_t player)
 {
-    uint8_t opplayer = pState.getNextPlayer();
-    uint8_t player = (pState.getNextPlayer() == CELL_X) ? CELL_O : CELL_X;
+    //uint8_t player = pState.getNextPlayer();
+    uint8_t opplayer = getTheOtherPlayer(player);
     int myMark, opMark;
     int sumMark = 0;
 
@@ -83,28 +86,27 @@ int eval(const GameState &pState)
     return sumMark;
 }
 
-int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta)
+int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint8_t player, uint8_t myStand)
 {
     std::vector<GameState> lNextStates;
     pState.findPossibleMoves(lNextStates);
     int v = 0;
-	uint8_t player = pState.getNextPlayer();
     if (depth == 0 || lNextStates.size() == 0)
-        v = eval(pState);
+        v = eval(pState, player);
     else{
-        if (player == CELL_X){
+        if (player == myStand){
         	v = INT_MIN;
         	for (size_t i=0; i<lNextStates.size(); i++){
-        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta));
+        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getTheOtherPlayer(player), myStand));
         		alpha = std::max(alpha,v);
         		if (beta <= alpha)
         			break;
         	}
         }
-        else if(player == CELL_O){
+        else if(player != myStand){
         	v = INT_MAX;
         	for (size_t i=0; i<lNextStates.size(); i++){
-        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta));
+        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getTheOtherPlayer(player), myStand));
         		beta = std::min(beta,v);
         		if (beta <= alpha)
         			break;
@@ -124,8 +126,7 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
     if (lNextStates.size() == 0)
         return GameState(pState, Move());
-    std::cerr << "Sum = "<< eval(lNextStates[0]) << '\n';
-    std::cerr << "State" << '\n';
+
     for (size_t i = 0; i < 16; i++) {
         std::cerr << unsigned(lNextStates[0].at(i)) ;
     }
@@ -137,7 +138,7 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     uint8_t player = pState.getNextPlayer(); // get current player
     //std::cerr << "player " << unsigned(player) << '\n';
 
-    int depth = 3;
+    int depth = 1;
     int alpha = INT_MIN;
     int beta = INT_MAX;
     int bestValue = INT_MIN;
@@ -146,14 +147,15 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
 
     for (size_t i = 0; i < lNextStates.size(); i++) {
-        compareBuff = minmaxAlphaBeta(lNextStates[i], depth, alpha, beta);
+        compareBuff = minmaxAlphaBeta(lNextStates[i], depth, alpha, beta, getTheOtherPlayer(player), player);
         //std::cerr << "Bestv" << compareBuff<< '\n';
         if (compareBuff > bestValue) {
             bestValue = compareBuff;
             beststateID = i;
         }
     }
-
+    std::cerr << "Sum = "<< eval(lNextStates[beststateID], player) << '\n';
+    std::cerr << "State" << '\n';
 
     GameState move = lNextStates[beststateID];
 
@@ -164,5 +166,4 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
     return move;
 }
-
 /*namespace TICTACTOE*/ }
