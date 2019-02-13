@@ -304,8 +304,10 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
 
     for (size_t i = 0; i < lNextStates.size(); i++) {
+    	if(pDue.now() >pDue - 0.1)
+    		break;
+
         compareBuff = minmaxAlphaBeta(lNextStates[i], depth, alpha, beta, getTheOtherPlayer(player), player);
-        //std::cerr << "Bestv" << compareBuff<< '\n';
         if (compareBuff > bestValue) {
             bestValue = compareBuff;
             beststateID = i;

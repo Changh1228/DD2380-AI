@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
         // Figure out the next move
         TICTACTOE3D::GameState output_state = player.play(input_state, deadline);
-
+        std::cerr << "deadline: "<< deadline.getSeconds() << " "<<TICTACTOE3D::Deadline::now().getSeconds() <<std::endl;
 		if (deadline < TICTACTOE3D::Deadline::now()) {
 			exit(152);
 		}
