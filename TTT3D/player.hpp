@@ -1,5 +1,5 @@
-#ifndef _CHECKERS_PLAYER_HPP_
-#define _CHECKERS_PLAYER_HPP_
+#ifndef _TICTACTOE3D_PLAYER_HPP_
+#define _TICTACTOE3D_PLAYER_HPP_
 
 #include "constants.hpp"
 #include "deadline.hpp"
@@ -7,9 +7,9 @@
 #include "gamestate.hpp"
 #include <vector>
 
-namespace checkers
+namespace TICTACTOE3D
 {
-const int DEPTH = 7;
+
 class Player
 {
 public:
@@ -20,6 +20,6 @@ public:
     GameState play(const GameState &pState, const Deadline &pDue);
 };
 
-/*namespace checkers*/ }
+/*namespace TICTACTOE3D*/ }
 
 #endif

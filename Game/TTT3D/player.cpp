@@ -1,12 +1,32 @@
 #include "player.hpp"
 #include <cstdlib>
+#include <climits>
+#include <string>
+#include <map>
+
 
 namespace TICTACTOE3D
 {
+const int marks[5][5] = {
+      {0,     -10, -100,  -1000, -10000},
+      {10,     0,    0,    0,    0},
+      {100,    0,    0,    0,    0},
+      {1000,   0,    0,    0,    0},
+      {10000,  0,    0,    0,    0}
+};
 
 uint8_t getTheOtherPlayer(uint8_t player){
     return (player == CELL_X) ? CELL_O : CELL_X;
 }
+/*std::string Converter (const GameState &pState) {
+    std::string s;
+    s.reserve(70);
+    for (size_t i = 0; i < 64; i++) {
+        s += std::to_string(pState.at(i));
+    }
+    return s;
+}*/
+
 int eval(const GameState &pState, uint8_t player)
 {
     //uint8_t player = pState.getNextPlayer();
@@ -24,15 +44,10 @@ int eval(const GameState &pState, uint8_t player)
 	                myMark++;
 	            }
 	            if (pState.at(i,j,k) == opplayer) {
-	                opMark--;
+	                opMark++;
 	            }
 	        }
-	        if (myMark != 0 && opMark != 0) {
-	            continue;
-	        }
-	        else{
-	            sumMark += (myMark + opMark);
-	        }
+	        sumMark += marks[myMark][opMark];
         }
 
     }
@@ -46,15 +61,10 @@ int eval(const GameState &pState, uint8_t player)
 	                myMark++;
 	            }
 	            if (pState.at(i,j,k) == opplayer) {
-	                opMark--;
+	                opMark++;
 	            }
 	        }
-	        if (myMark != 0 && opMark != 0) {
-	            continue;
-	        }
-	        else{
-	            sumMark += (myMark + opMark);
-	        }
+	        sumMark += marks[myMark][opMark];
         }
 
     }
@@ -68,15 +78,10 @@ int eval(const GameState &pState, uint8_t player)
 	                myMark++;
 	            }
 	            if (pState.at(i,j,k) == opplayer) {
-	                opMark--;
+	                opMark++;
 	            }
 	        }
-	        if (myMark != 0 && opMark != 0) {
-	            continue;
-	        }
-	        else{
-	            sumMark += (myMark + opMark);
-	        }
+	        sumMark += marks[myMark][opMark];
         }
 
     }
@@ -90,13 +95,10 @@ int eval(const GameState &pState, uint8_t player)
 	            myMark++;
 	        }
 	        if (pState.at(i, m, 3-m) == opplayer) {
-	            opMark--;
+	            opMark++;
 	        }
 	    }
-	    if (myMark != 0 && opMark != 0);
-	    else{
-	        sumMark += (myMark + opMark);
-	    }
+	    sumMark += marks[myMark][opMark];
 
 	    myMark = 0;
 	    opMark = 0;
@@ -105,14 +107,12 @@ int eval(const GameState &pState, uint8_t player)
 	            myMark++;
 	        }
 	        if (pState.at(i, m, m) == opplayer) {
-	            opMark--;
+	            opMark++;
 	        }
 	    }
-	    if (myMark != 0 && opMark != 0);
-	    else{
-	        sumMark += (myMark + opMark);
-	    }
+	    sumMark += marks[myMark][opMark];
 	}
+
 	// Diagonals from j perspective
     for(size_t i = 0; i < 4; i++){
 	    myMark = 0;
@@ -122,13 +122,10 @@ int eval(const GameState &pState, uint8_t player)
 	            myMark++;
 	        }
 	        if (pState.at(m, i, 3-m) == opplayer) {
-	            opMark--;
+	            opMark++;
 	        }
 	    }
-	    if (myMark != 0 && opMark != 0);
-	    else{
-	        sumMark += (myMark + opMark);
-	    }
+	    sumMark += marks[myMark][opMark];
 
 	    myMark = 0;
 	    opMark = 0;
@@ -137,13 +134,10 @@ int eval(const GameState &pState, uint8_t player)
 	            myMark++;
 	        }
 	        if (pState.at(m, i, m) == opplayer) {
-	            opMark--;
+	            opMark++;
 	        }
 	    }
-	    if (myMark != 0 && opMark != 0);
-	    else{
-	        sumMark += (myMark + opMark);
-	    }
+	    sumMark += marks[myMark][opMark];
 	}
 	// Diagonals from k perspective
     for(size_t i = 0; i < 4; i++){
@@ -154,13 +148,10 @@ int eval(const GameState &pState, uint8_t player)
 	            myMark++;
 	        }
 	        if (pState.at(m, 3-m, i) == opplayer) {
-	            opMark--;
+	            opMark++;
 	        }
 	    }
-	    if (myMark != 0 && opMark != 0);
-	    else{
-	        sumMark += (myMark + opMark);
-	    }
+	    sumMark += marks[myMark][opMark];
 
 	    myMark = 0;
 	    opMark = 0;
@@ -169,16 +160,13 @@ int eval(const GameState &pState, uint8_t player)
 	            myMark++;
 	        }
 	        if (pState.at(m, m, i) == opplayer) {
-	            opMark--;
+	            opMark++;
 	        }
 	    }
-	    if (myMark != 0 && opMark != 0);
-	    else{
-	        sumMark += (myMark + opMark);
-	    }
+	    sumMark += marks[myMark][opMark];
 	}
 
-    // The last 4 main diagonals 
+    // The last 4 main diagonals
     myMark = 0;
     opMark = 0;
     for (size_t i = 0; i < 4; i++) {
@@ -186,13 +174,10 @@ int eval(const GameState &pState, uint8_t player)
             myMark++;
         }
         if (pState.at(i,i,i) == opplayer) {
-            opMark--;
+            opMark++;
         }
     }
-    if (myMark != 0 && opMark != 0);
-    else{
-        sumMark += (myMark + opMark);
-    }
+    sumMark += marks[myMark][opMark];
 
     myMark = 0;
     opMark = 0;
@@ -201,13 +186,10 @@ int eval(const GameState &pState, uint8_t player)
             myMark++;
         }
         if (pState.at(3-i,i,i) == opplayer) {
-            opMark--;
+            opMark++;
         }
     }
-    if (myMark != 0 && opMark != 0);
-    else{
-        sumMark += (myMark + opMark);
-    }
+    sumMark += marks[myMark][opMark];
 
     myMark = 0;
     opMark = 0;
@@ -216,13 +198,10 @@ int eval(const GameState &pState, uint8_t player)
             myMark++;
         }
         if (pState.at(i,3-i,i) == opplayer) {
-            opMark--;
+            opMark++;
         }
     }
-    if (myMark != 0 && opMark != 0);
-    else{
-        sumMark += (myMark + opMark);
-    }
+    sumMark += marks[myMark][opMark];
 
     myMark = 0;
     opMark = 0;
@@ -231,15 +210,11 @@ int eval(const GameState &pState, uint8_t player)
             myMark++;
         }
         if (pState.at(i,i,3-i) == opplayer) {
-            opMark--;
+            opMark++;
         }
     }
-    if (myMark != 0 && opMark != 0);
-    else{
-        sumMark += (myMark + opMark);
-    }
+    sumMark += marks[myMark][opMark];
 
-    //std::cerr << "Eval function called: " << player << '\n';
     return sumMark;
 }
 
@@ -284,10 +259,6 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     if (lNextStates.size() == 0)
         return GameState(pState, Move());
 
-    for (size_t i = 0; i < 16; i++) {
-        std::cerr << unsigned(lNextStates[0].at(i)) ;
-    }
-    std::cerr << " " << '\n';
     /*
      * Here you should write your clever algorithms to get the best next move, ie the best
      * next state. This skeleton returns a random move instead.
@@ -295,7 +266,21 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     uint8_t player = pState.getNextPlayer(); // get current player
     std::cerr << "player " << unsigned(player) << '\n';
 
-    int depth = 1;
+    int depth =0;
+    /*if (lNextStates.size() > 50) {
+        depth = 0;
+    }
+    if (lNextStates.size() > 40 && lNextStates.size() <= 50) {
+        depth = 1;
+    }
+    if (lNextStates.size() > 30 && lNextStates.size() <= 40) {
+        depth = 1;
+    }
+    if (lNextStates.size() > 0 && lNextStates.size() <= 30) {
+        depth = 1;
+    }*/
+
+    std::cerr << "depth"  << depth<< '\n';
     int alpha = INT_MIN;
     int beta = INT_MAX;
     int bestValue = INT_MIN;
@@ -304,8 +289,12 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
 
     for (size_t i = 0; i < lNextStates.size(); i++) {
-    	if(pDue.now() >pDue - 0.1)
-    		break;
+    	if(pDue.now() >pDue - 0.1){
+            std::cerr << "list length "  << lNextStates.size()<< '\n';
+            std::cerr << "break at " << i << '\n';
+        	break;
+        }
+
 
         compareBuff = minmaxAlphaBeta(lNextStates[i], depth, alpha, beta, getTheOtherPlayer(player), player);
         if (compareBuff > bestValue) {
@@ -314,7 +303,6 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
         }
     }
     std::cerr << "Sum = "<< eval(lNextStates[beststateID], player) << '\n';
-    std::cerr << "State" << '\n';
 
     GameState move = lNextStates[beststateID];
     std::cerr << "Best Id: " << beststateID<< '\n';

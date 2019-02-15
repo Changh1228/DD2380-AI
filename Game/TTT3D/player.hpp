@@ -18,6 +18,7 @@ public:
     ///\param pDue time before which we must have returned
     ///\return the next state the board is in after our move
     GameState play(const GameState &pState, const Deadline &pDue);
+    //std::map<key, value> evalMap;
 };
 
 /*namespace TICTACTOE3D*/ }
