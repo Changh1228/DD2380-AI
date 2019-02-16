@@ -4,33 +4,12 @@
 
 namespace checkers
 {
+const int side[14] = {0,1,2,3,11,19,27,31,30,29,28,20,12,4};
+const int lsRow[9] = {5,6,7,13,14,15,21,22,23};
+const int rsRow[9] = {8,9,10,16,17,18,24,25,26};
 
 uint8_t getOtherPlayer(uint8_t player){
     return (player == CELL_RED) ? CELL_WHITE : CELL_RED;
-}
-
-int markPiece(const GameState &pState, uint8_t myPlayer) {
-    uint8_t opPlayer = getOtherPlayer(myPlayer);
-    int num = 0;
-    for (int i = 0; i < pState.cSquares; ++i) {
-		if (pState.at(i) & myPlayer)
-			++num;
-        if (pState.at(i) & opPlayer)
-    		--num;
-	}
-    return num;
-}
-
-int markKing(const GameState &pState, uint8_t myPlayer) {
-    uint8_t opPlayer = getOtherPlayer(myPlayer);
-    int num = 0;
-    for (int i = 0; i < pState.cSquares; ++i) {
-        if (pState.at(i) == (myPlayer|CELL_KING))
-            ++num;
-        if (pState.at(i) == (opPlayer|CELL_KING))
-            --num;
-    }
-    return num;
 }
 
 int markJump(const GameState &pState, uint8_t myPlayer) {
@@ -49,7 +28,7 @@ int markJump(const GameState &pState, uint8_t myPlayer) {
             num -= pMove.length()-1; // player make a jump
             std::cerr << "op jump ";
         }
-        for(unsigned i=1;i<pMove.length();++i) {
+        for(unsigned i=1; i<pMove.length(); ++i) {
             std::cerr << unsigned(pMove[i]) << " ";
         }
         std::cerr << " " << '\n';
@@ -58,27 +37,122 @@ int markJump(const GameState &pState, uint8_t myPlayer) {
     return num;
 }
 
+int markEnd(const GameState &pState, uint8_t myPlayer) {
+    if (pState.isRedWin()) {
+        if (myPlayer == CELL_RED)
+            return 2000; // I(red) win
+        else
+            return -2000; // I(red) lose
+    }
+    else if (pState.isWhiteWin()) {
+        if (myPlayer == CELL_WHITE)
+            return 2000; // I(white) win
+        else
+            return -2000; // I(white) lose
+    }
+    else if (pState.isDraw()) {
+        return -1000;
+    }
+    else
+        return 0;
+}
+
+int markSide(const GameState &pState, uint8_t myPlayer) {
+    uint8_t opPlayer = getOtherPlayer(myPlayer);
+    int sum = 0;
+    for (auto i : side) {
+        if (pState.at(i) & myPlayer) {
+            ++sum;
+        }
+        else if (pState.at(i) & opPlayer) {
+            --sum;
+        }
+    }
+    return sum;
+}
+
+int markProtect(const GameState &pState, uint8_t myPlayer) {
+    int redUnPro = 0;
+    int whiteUnPro = 0;
+    for (auto i : lsRow) {
+        if (pState.at(i) & CELL_RED) {
+            if ((pState.at(i-4) & CELL_RED) || (pState.at(i-5) & CELL_RED)) {
+                ++redUnPro;
+            }
+        }
+        else if (pState.at(i) & CELL_WHITE) {
+            if ((pState.at(i+4) & CELL_WHITE) || (pState.at(i+3) & CELL_WHITE)) {
+                ++whiteUnPro;
+            }
+        }
+    }
+    for (auto i :rsRow) {
+        if (pState.at(i) & CELL_RED) {
+            if ((pState.at(i-4) & CELL_RED) || (pState.at(i-3) & CELL_RED)) {
+                ++redUnPro;
+            }
+        }
+        else if (pState.at(i) & CELL_WHITE) {
+            if ((pState.at(i+4) & CELL_WHITE) || (pState.at(i+5) & CELL_WHITE)) {
+                ++whiteUnPro;
+            }
+        }
+    }
+    if (myPlayer == CELL_RED)
+        return (whiteUnPro - redUnPro);
+    else
+        return (redUnPro - whiteUnPro);
+}
+
 int eval(const GameState &pState, uint8_t myPlayer) {
-    //uint8_t opPlayer = getOtherPlayer(myPlayer);
+    uint8_t opPlayer = getOtherPlayer(myPlayer);
     int sumMark = 0;
-    //int myMark, opMark;
+    int myPiece = 0;
+    int opPiece = 0;
+    int myKing = 0;
+    int opKing = 0;
     std::cerr << "possible move" << '\n';
 
-    // cal mark for king
-    sumMark += markKing(pState, myPlayer);
-    std::cerr << "mark from king "<< sumMark << '\n';
+    for (int i = 0; i < pState.cSquares; ++i) {
+		if (pState.at(i) & myPlayer) {
+            ++ myPiece;
+            if (pState.at(i) & CELL_KING) {
+                ++ myKing;
+            }
+        }
+        else if (pState.at(i) & opPlayer) {
+            ++ opPiece;
+            if (pState.at(i) & CELL_KING) {
+                ++ opKing;
+            }
+        }
+	} // cal num of pieces and king
+    std::cerr << "myPiece "<< myPiece << '\n';
+    std::cerr << "opPiece "<< opPiece << '\n';
+    std::cerr << "myKing "<< myKing << '\n';
+    std::cerr << "opKing "<< opKing << '\n'; //*/
 
-    // cal mark for dif of piece number
-    int buff = markPiece(pState, myPlayer);
-    sumMark += buff;
-    std::cerr << "mark from piece " << buff << '\n';
+    // mark for dif of piece and king number katti ++
+    sumMark = (myPiece - opPiece) + 2 * (myKing - opKing);
 
-    // cal mark for jump
-    buff = markJump(pState, myPlayer);
-    sumMark += buff;
-    std::cerr << "mark from jump " << buff << '\n';
+    // penalty if opPlayer get king kattis +++
+    sumMark -= 100 * opKing;
+
+    // mark for jump: no improve in kattis
+    //sumMark += markJump(pState, myPlayer);
+    /*std::cerr << "mark from jump " << buff << '\n'; //*/
+
+    // mark for end game kattis +++
+    sumMark += markEnd(pState, myPlayer);
+
+    // mark for accupy side for defence kattis +
+    //sumMark += markSide(pState, myPlayer);
+
+    // mark for unprotected pieces kattis +
+    //sumMark += markProtect(pState, myPlayer);
+
+
     std::cerr << " " << '\n';
-
     return sumMark;
 }
 
@@ -124,7 +198,7 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
     uint8_t player = pState.getNextPlayer(); // get current player
     std::cerr << "player " << unsigned(player) << '\n';
-    std::cerr << "child num "<< lNextStates.size() << '\n';
+    std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
 
     /*if (lNextStates.size() > 50) {
         depth = 0;
@@ -149,7 +223,7 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     for (size_t i = 0; i < lNextStates.size(); i++) {
     	if(pDue.now() >pDue - 0.1){
             std::cerr << "list length "  << lNextStates.size()<< '\n';
-            std::cerr << "break at " << i << '\n';
+            std::cerr << "break at " << i << '\n'; //*/
         	break;
         }
 
@@ -159,10 +233,10 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
             beststateID = i;
         }
     }
-    std::cerr << "bestValue = "<< bestValue << '\n';
+    std::cerr << "bestValue = "<< bestValue << '\n'; //*/
 
     GameState move = lNextStates[beststateID];
-    std::cerr << "Best Id: " << beststateID<< '\n';
+    std::cerr << "Best Id: " << beststateID<< '\n'; //*/
 
     /*if (beststateID == 100) {
         move = lNextStates[rand() % lNextStates.size()];

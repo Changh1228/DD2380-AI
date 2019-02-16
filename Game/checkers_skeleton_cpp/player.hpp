@@ -9,7 +9,7 @@
 
 namespace checkers
 {
-const int DEPTH = 7;
+const int DEPTH = 8;
 class Player
 {
 public:
