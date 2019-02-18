@@ -7,6 +7,11 @@ namespace checkers
 const int side[14] = {0,1,2,3,11,19,27,31,30,29,28,20,12,4};
 const int lsRow[9] = {5,6,7,13,14,15,21,22,23};
 const int rsRow[9] = {8,9,10,16,17,18,24,25,26};
+static int index = 0;
+// struct ReturnNode {
+//     int index;
+//     int value;
+// } node;
 
 uint8_t getOtherPlayer(uint8_t player){
     return (player == CELL_RED) ? CELL_WHITE : CELL_RED;
@@ -160,6 +165,7 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
 {
     std::vector<GameState> lNextStates;
     pState.findPossibleMoves(lNextStates);
+
     int v = 0;
     if (depth == 0 || lNextStates.size() == 0)
         v = eval(pState, myStand);
@@ -167,8 +173,12 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
         if (player == myStand){
         	v = INT_MIN;
         	for (size_t i=0; i<lNextStates.size(); i++){
+                int tmp = v;
         		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getOtherPlayer(player), myStand));
-        		alpha = std::max(alpha,v);
+        		if (v != tmp){
+                    index = i;
+                }
+                alpha = std::max(alpha,v);
         		if (beta <= alpha)
         			break;
         	}
@@ -183,14 +193,11 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
         	}
         }
     }
-
     return v;
 }
 
-GameState Player::play(const GameState &pState,const Deadline &pDue)
-{
-    //std::cerr << "Processing " << pState.toMessage() << std::endl;
-
+GameState ids(const GameState &pState,const Deadline &pDue){
+    
     std::vector<GameState> lNextStates;
     pState.findPossibleMoves(lNextStates);
 
@@ -199,6 +206,28 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     uint8_t player = pState.getNextPlayer(); // get current player
     std::cerr << "player " << unsigned(player) << '\n';
     std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
+    int alpha = INT_MIN;
+    int beta = INT_MAX;
+    int depth = 7;
+    int v =0;
+    // while (true) {
+    //     if(pDue.now() >pDue - 0.95){
+    //         std::cerr << "list length "  << lNextStates.size()<< '\n';
+    //         std::cerr << "break at depth = " << depth << '\n'; 
+    //         break;
+    //     }
+        v =minmaxAlphaBeta(pState, depth, alpha, beta, player, player);
+    //     depth += 1;
+    // }
+    std::cerr << "bestValue = "<< v << '\n'; 
+    std::cerr << "Best Id: " << index<< '\n'; 
+    return lNextStates[index];
+
+}
+
+GameState Player::play(const GameState &pState,const Deadline &pDue)
+{
+    //std::cerr << "Processing " << pState.toMessage() << std::endl;
 
     /*if (lNextStates.size() > 50) {
         depth = 0;
@@ -214,35 +243,12 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     }*/
 
     //std::cerr << "depth"  << depth<< '\n';
-    int alpha = INT_MIN;
-    int beta = INT_MAX;
-    int bestValue = INT_MIN;
-    int beststateID = 0;
-    int compareBuff = INT_MIN;
-
-    for (size_t i = 0; i < lNextStates.size(); i++) {
-    	if(pDue.now() >pDue - 0.1){
-            std::cerr << "list length "  << lNextStates.size()<< '\n';
-            std::cerr << "break at " << i << '\n'; //*/
-        	break;
-        }
-
-        compareBuff = minmaxAlphaBeta(lNextStates[i], DEPTH, alpha, beta, getOtherPlayer(player), player);
-        if (compareBuff > bestValue) {
-            bestValue = compareBuff;
-            beststateID = i;
-        }
-    }
-    std::cerr << "bestValue = "<< bestValue << '\n'; //*/
-
-    GameState move = lNextStates[beststateID];
-    std::cerr << "Best Id: " << beststateID<< '\n'; //*/
 
     /*if (beststateID == 100) {
         move = lNextStates[rand() % lNextStates.size()];
         std::cerr << "random" << '\n';
     }*/
-    return move;
+    return ids(pState, pDue);
 }
 
 /*namespace checkers*/ }
