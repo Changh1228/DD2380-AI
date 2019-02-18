@@ -1,6 +1,8 @@
 #include "player.hpp"
 #include <cstdlib>
 #include <climits>
+#include <random>
+#include <unordered_map>
 
 namespace checkers
 {
@@ -12,7 +14,45 @@ static int index = 0;
 //     int index;
 //     int value;
 // } node;
+std::unordered_map<uint_fast64_t, int> redMap, whiteMap;
 
+struct Zobrist {
+    // hash 值： 格子上红or白；格子上红王or白王；next player是谁
+    uint_fast64_t whitePiece[32];
+    uint_fast64_t redPiece[32];
+    uint_fast64_t whiteKing[32];
+    uint_fast64_t redKing[32];
+    uint_fast64_t nextRed;
+    uint_fast64_t nextWhite;
+    //uint_fast64_t initState;
+} Zobrist;
+
+void Zobrist_init() {
+    std::random_device rd;
+    std::mt19937_64 mt(rd());
+
+    for (size_t i = 0; i < 32; i++) {
+        Zobrist.whitePiece[i] = mt();
+    }
+    for (size_t i = 0; i < 32; i++) {
+        Zobrist.redPiece[i] = mt();
+    }
+    for (size_t i = 0; i < 32; i++) {
+        Zobrist.whiteKing[i] = mt();
+    }
+    for (size_t i = 0; i < 32; i++) {
+        Zobrist.redKing[i] = mt();
+    }
+    Zobrist.nextRed = mt();
+    Zobrist.nextWhite = mt();
+    /*Zobrist.initState = Zobrist.nextRed; // first player is red
+    for(size_t i = 0; i < 12; i++) { // red piece is in case 0-11
+        Zobrist.initState = Zobrist.initState ^ Zobrist.redPiece[i];
+    }
+    for(size_t i = 20; i < 32; i++) { // white piece is in case 20-31
+        Zobrist.initState = Zobrist.initState ^ Zobrist.whitePiece[i];
+    }*/
+}
 uint8_t getOtherPlayer(uint8_t player){
     return (player == CELL_RED) ? CELL_WHITE : CELL_RED;
 }
@@ -109,17 +149,53 @@ int markProtect(const GameState &pState, uint8_t myPlayer) {
         return (redUnPro - whiteUnPro);
 }
 
+uint_fast64_t calHashKey(const GameState &pState) {
+    // my player is the player we cal eval func for
+    uint8_t player = pState.getNextPlayer();
+    uint_fast64_t key;
+    if (player & CELL_RED)
+        key = Zobrist.nextRed;
+    else
+        key = Zobrist.nextWhite;
+
+    for(size_t i = 0; i < pState.cSquares; i++) {
+        if (pState.at(i) & CELL_RED) {
+            key ^= Zobrist.redPiece[i];
+            if (pState.at(i) & CELL_KING) {
+                key ^= Zobrist.redKing[i];
+            }
+        }
+        else if (pState.at(i) & CELL_WHITE) {
+            key ^= Zobrist.whitePiece[i];
+            if (pState.at(i) & CELL_KING) {
+                key ^= Zobrist.whiteKing[i];
+            }
+        }
+    }
+    return key;
+}
+
 int eval(const GameState &pState, uint8_t myPlayer) {
+    uint_fast64_t key = calHashKey(pState); // check repeat state
+    if ((myPlayer & CELL_RED) && (redMap.find(key) != redMap.end())) {
+        //std::cerr << "cheked repeat red " << redMap[key]<< " size " << redMap.size()<<'\n';
+        return redMap[key];
+    }
+    else if  ((myPlayer & CELL_WHITE) && (whiteMap.find(key) != whiteMap.end())) {
+        //std::cerr << "cheked repeat white " << whiteMap[key]<<" size " << whiteMap.size()<< '\n';
+        return whiteMap[key];
+    }
+
     uint8_t opPlayer = getOtherPlayer(myPlayer);
     int sumMark = 0;
     int myPiece = 0;
     int opPiece = 0;
     int myKing = 0;
     int opKing = 0;
-    std::cerr << "possible move" << '\n';
+    std::cerr << "mark " ;
 
     for (int i = 0; i < pState.cSquares; ++i) {
-		if (pState.at(i) & myPlayer) {
+        if (pState.at(i) & myPlayer) {
             ++ myPiece;
             if (pState.at(i) & CELL_KING) {
                 ++ myKing;
@@ -131,8 +207,8 @@ int eval(const GameState &pState, uint8_t myPlayer) {
                 ++ opKing;
             }
         }
-	} // cal num of pieces and king
-    std::cerr << "myPiece "<< myPiece << '\n';
+    } // cal num of pieces and king
+    /*std::cerr << "myPiece "<< myPiece << '\n';
     std::cerr << "opPiece "<< opPiece << '\n';
     std::cerr << "myKing "<< myKing << '\n';
     std::cerr << "opKing "<< opKing << '\n'; //*/
@@ -155,9 +231,12 @@ int eval(const GameState &pState, uint8_t myPlayer) {
 
     // mark for unprotected pieces kattis +
     //sumMark += markProtect(pState, myPlayer);
+    if (myPlayer & CELL_RED) // add value to the map
+        redMap[key] = sumMark;
+    else
+        whiteMap[key] = sumMark;
 
-
-    std::cerr << " " << '\n';
+    std::cerr << sumMark << '\n';
     return sumMark;
 }
 
@@ -170,6 +249,7 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
     if (depth == 0 || lNextStates.size() == 0)
         v = eval(pState, myStand);
     else{
+        //std::cerr << "layer "<< DEPTH - depth +2<<" child num "<< lNextStates.size() << '\n'; 
         if (player == myStand){
         	v = INT_MIN;
         	for (size_t i=0; i<lNextStates.size(); i++){
@@ -210,15 +290,15 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     int beta = INT_MAX;
     int depth = 7;
     int v =0;
-    // while (true) {
-    //     if(pDue.now() >pDue - 0.95){
-    //         std::cerr << "list length "  << lNextStates.size()<< '\n';
-    //         std::cerr << "break at depth = " << depth << '\n'; 
-    //         break;
-    //     }
+    while (true) {
+        if(depth > 20 || pDue.now() >pDue - 0.9){
+            std::cerr << "list length "  << lNextStates.size()<< '\n';
+            std::cerr << "break at depth = " << depth << '\n'; 
+            break;
+        }
         v =minmaxAlphaBeta(pState, depth, alpha, beta, player, player);
-    //     depth += 1;
-    // }
+        depth += 2;
+    }
     std::cerr << "bestValue = "<< v << '\n'; 
     std::cerr << "Best Id: " << index<< '\n'; 
     return lNextStates[index];
