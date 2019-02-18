@@ -3,7 +3,8 @@
 #include <climits>
 #include <random>
 #include <unordered_map>
-
+#include <map>
+#include <functional>
 namespace checkers
 {
 const int side[14] = {0,1,2,3,11,19,27,31,30,29,28,20,12,4};
@@ -62,24 +63,24 @@ int markJump(const GameState &pState, uint8_t myPlayer) {
     int num = 0;
     pMove = pState.getMove();
     if (pMove.isJump()) {
-        std::cerr << "jump num " << pMove.length()-1<< '\n';
+        //std::cerr << "jump num " << pMove.length()-1<< '\n';
         // pmove [pos before jump, pos after jump, pos after double jump]
         // after double jump, the blank of first jump pos is empty
         if (pState.at(pMove[pMove.length()-1]) & myPlayer) {
             num += pMove.length()-1; // player make a jump
-            std::cerr << "I jump " ;
+        //    std::cerr << "I jump " ;
         }
         else{
             num -= pMove.length()-1; // player make a jump
-            std::cerr << "op jump ";
+        //    std::cerr << "op jump ";
         }
         for(unsigned i=1; i<pMove.length(); ++i) {
-            std::cerr << unsigned(pMove[i]) << " ";
+        //    std::cerr << unsigned(pMove[i]) << " ";
         }
-        std::cerr << " " << '\n';
+        //std::cerr << " " << '\n';
     }
     else ; // no jump
-    return num*100;
+    return num * 100;
 }
 
 int markEnd(const GameState &pState, uint8_t myPlayer) {
@@ -227,10 +228,10 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     sumMark += markEnd(pState, myPlayer);
 
     // mark for accupy side for defence kattis +
-    //sumMark += markSide(pState, myPlayer);
+    sumMark += markSide(pState, myPlayer);
 
     // mark for unprotected pieces kattis +
-    //sumMark += markProtect(pState, myPlayer);
+    sumMark += markProtect(pState, myPlayer);
     if (myPlayer & CELL_RED) // add value to the map
         redMap[key] = sumMark;
     else
@@ -240,13 +241,12 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     return sumMark;
 }
 
-int minmaxAlphaBeta(const GameState &pState,int depth, int max_layer, int alpha, int beta, uint8_t player, uint8_t myStand)
+int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint8_t player, uint8_t myStand)
 {
     std::vector<GameState> lNextStates;
     pState.findPossibleMoves(lNextStates);
 
     int v = 0;
-    int index =0;
     if (depth == 0 || lNextStates.size() == 0)
         v = eval(pState, myStand);
     else{
@@ -254,11 +254,7 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int max_layer, int alpha,
         if (player == myStand){
         	v = INT_MIN;
         	for (size_t i=0; i<lNextStates.size(); i++){
-                int tmp = v;
-        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, max_layer,alpha, beta, getOtherPlayer(player), myStand));
-                if (v != tmp){
-                    index = i;
-                }
+        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getOtherPlayer(player), myStand));
                 alpha = std::max(alpha,v);
         		if (beta <= alpha)
         			break;
@@ -267,19 +263,14 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int max_layer, int alpha,
         else if(player != myStand){
         	v = INT_MAX;
         	for (size_t i=0; i<lNextStates.size(); i++){
-        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1, max_layer, alpha, beta, getOtherPlayer(player), myStand));
+        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1,alpha, beta, getOtherPlayer(player), myStand));
         		beta = std::min(beta,v);
         		if (beta <= alpha)
         			break;
         	}
         }
     }
-    if(depth != max_layer){
-        return v;
-    }
-    else{
-        return index;
-    }
+    return v;
 }
 
 GameState ids(const GameState &pState,const Deadline &pDue){
@@ -296,15 +287,78 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     int alpha = INT_MIN;
     int beta = INT_MAX;
     int depth = 5;
-    int index = 0;
-    while (true) {
-        if(depth > 20 || pDue.now() >pDue - 0.98){
-            std::cerr << "list length "  << lNextStates.size()<< '\n';
-            std::cerr << "break at depth = " << depth << '\n'; 
-            break;
+    int v = 0;
+    int index =0;
+    std::map <int,int,std::greater<int>> indexMap, indexMapTmp;
+    // int valueList[lNextStates.size()];
+    // int indexList[lNextStates.size()];
+    // for (int m =0; m < lNextStates.size(); m++){
+    //     valueList[m] =INT_MIN;
+    //     indexList[m] =INT_MIN;
+    // }
+
+    indexMap.clear();
+    
+    for (int i =0; i< lNextStates.size(); i++){   
+        v =minmaxAlphaBeta(lNextStates[indexMap[i]], 0, alpha, beta, getOtherPlayer(player), player);
+        int valueToInsert = v;
+        while(true){
+                std::map<int,int>::iterator it = indexMap.find(valueToInsert);
+                if (it != indexMap.end())
+                    valueToInsert +=1; 
+                else
+                    break;
         }
-        index =minmaxAlphaBeta(pState, depth, depth, alpha, beta, player, player);
+        indexMap[valueToInsert]=i;
+         std::cerr << "index "<<valueToInsert << " " <<i <<std::endl;
+    }
+    for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+        std::cerr << "indexMapHEREEERERE"<<i->first << " " <<i->second <<std::endl;
+    } 
+    indexMapTmp = indexMap;
+
+    while (true) {
+
+        if(depth > 20 || pDue.now() >pDue - 0.98){
+                std::cerr << "list length "  << lNextStates.size()<< '\n';
+                std::cerr << "break at depth = " << depth << '\n'; 
+                break;
+        }
+
+        int indexToStore =0;
+        indexMap.clear();
+        for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){   
+            v =minmaxAlphaBeta(lNextStates[i->second], depth, alpha, beta, getOtherPlayer(player), player);
+            int valueToInsert = v;
+            while(true){
+                std::map<int,int>::iterator it = indexMap.find(valueToInsert);
+                if (it != indexMap.end())
+                    valueToInsert +=1; 
+                else
+                    break;
+            }
+            indexMap[valueToInsert]=indexToStore;
+            std::cerr << valueToInsert << " "<<indexToStore <<std::endl;
+            for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+                std::cerr << "indexMap"<<i->first << " " <<i->second <<std::endl;
+            }    
+            for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){   
+                std::cerr << "indexMapTmp"<<i->first << " " <<i->second <<std::endl;
+            }
+            indexToStore ++;
+        }
+        indexMapTmp = indexMap;
+        // std::copy(std::begin(valueList), std::end(valueList), std::begin(indexList));
+        // std::sort(std::begin(valueList), std::end(valueList));
         depth += 2;
+    }
+    for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){
+        index = i->second;
+        break;
+    }
+
+    for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+        std::cerr << i->first << " " <<i->second <<std::endl;
     }
     //std::cerr << "bestValue = "<< v << '\n'; 
     std::cerr << "Best Id: " << index<< '\n'; 
