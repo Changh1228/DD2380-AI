@@ -8,9 +8,7 @@
 #include "move.hpp"
 
 namespace checkers {
-const int DEPTH = 8;
-//std::unordered_map<uint_fast64_t, int> redMap, whiteMap; // hashmap for eval of different player
-// maybe use negative of red as eval of white
+const int DEPTH = 5;
 class Player {
    public:
     /// perform a move

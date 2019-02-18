@@ -40,7 +40,7 @@ void Zobrist_init() {
     }
     Zobrist.nextRed = mt();
     Zobrist.nextWhite = mt();
-    /*Zobrist.initState = Zobrist.nextRed; // first player is red 
+    /*Zobrist.initState = Zobrist.nextRed; // first player is red
     for(size_t i = 0; i < 12; i++) { // red piece is in case 0-11
         Zobrist.initState = Zobrist.initState ^ Zobrist.redPiece[i];
     }
@@ -146,11 +146,11 @@ int markProtect(const GameState &pState, uint8_t myPlayer) {
         return (redUnPro - whiteUnPro);
 }
 
-uint_fast64_t calHashKey(const GameState &pState) { 
+uint_fast64_t calHashKey(const GameState &pState) {
     // my player is the player we cal eval func for
     uint8_t player = pState.getNextPlayer();
     uint_fast64_t key;
-    if (player & CELL_RED) 
+    if (player & CELL_RED)
         key = Zobrist.nextRed;
     else
         key = Zobrist.nextWhite;
@@ -175,9 +175,11 @@ uint_fast64_t calHashKey(const GameState &pState) {
 int eval(const GameState &pState, uint8_t myPlayer) {
     uint_fast64_t key = calHashKey(pState); // check repeat state
     if ((myPlayer & CELL_RED) && (redMap.find(key) != redMap.end())) {
+        std::cerr << "cheked repeat red " << redMap[key]<< " size " << redMap.size()<<'\n';
         return redMap[key];
-    } 
+    }
     else if  ((myPlayer & CELL_WHITE) && (redMap.find(key) != redMap.end())) {
+        std::cerr << "cheked repeat white " << redMap[key]<<" size " << whiteMap.size()<< '\n';
         return whiteMap[key];
     }
 
@@ -187,7 +189,7 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     int opPiece = 0;
     int myKing = 0;
     int opKing = 0;
-    std::cerr << "possible move" << '\n';
+    std::cerr << "mark " ;
 
     for (int i = 0; i < pState.cSquares; ++i) {
 		if (pState.at(i) & myPlayer) {
@@ -203,7 +205,7 @@ int eval(const GameState &pState, uint8_t myPlayer) {
             }
         }
 	} // cal num of pieces and king
-    std::cerr << "myPiece "<< myPiece << '\n';
+    /*std::cerr << "myPiece "<< myPiece << '\n';
     std::cerr << "opPiece "<< opPiece << '\n';
     std::cerr << "myKing "<< myKing << '\n';
     std::cerr << "opKing "<< opKing << '\n'; //*/
@@ -228,10 +230,10 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     //sumMark += markProtect(pState, myPlayer);
     if (myPlayer & CELL_RED) // add value to the map
         redMap[key] = sumMark;
-    else 
+    else
         whiteMap[key] = sumMark;
-    
-    std::cerr << " " << '\n';
+
+    std::cerr << sumMark << '\n';
     return sumMark;
 }
 
@@ -242,6 +244,7 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
     if (depth == 0 || lNextStates.size() == 0)
         v = eval(pState, myStand);
     else{
+        std::cerr << "layer "<< DEPTH - depth +2<<" child num "<< lNextStates.size() << '\n'; 
         if (player == myStand){
         	v = INT_MIN;
         	for (size_t i=0; i<lNextStates.size(); i++){
@@ -276,7 +279,7 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
 
     uint8_t player = pState.getNextPlayer(); // get current player
     std::cerr << "player " << unsigned(player) << '\n';
-    std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
+    std::cerr << "layer 1 child num "<< lNextStates.size() << '\n'; //*/
 
     //std::cerr << "depth"  << depth<< '\n';
     int alpha = INT_MIN;
@@ -285,7 +288,6 @@ GameState Player::play(const GameState &pState,const Deadline &pDue)
     int beststateID = 0;
     int compareBuff = INT_MIN;
     Zobrist_init(); // init hash key
-    //std::unordered_map<std::string, std::string> hashmap; // 表应表示在hpp里?
 
     for (size_t i = 0; i < lNextStates.size(); i++) {
     	if(pDue.now() >pDue - 0.1){
