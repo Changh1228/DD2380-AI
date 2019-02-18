@@ -8,7 +8,7 @@
 #include "move.hpp"
 
 namespace checkers {
-const int DEPTH = 5;
+const int DEPTH = 7;
 class Player {
    public:
     /// perform a move
