@@ -9,7 +9,7 @@ namespace checkers
 const int side[14] = {0,1,2,3,11,19,27,31,30,29,28,20,12,4};
 const int lsRow[9] = {5,6,7,13,14,15,21,22,23};
 const int rsRow[9] = {8,9,10,16,17,18,24,25,26};
-static int index = 0;
+//int index = 0;
 // struct ReturnNode {
 //     int index;
 //     int value;
@@ -79,7 +79,7 @@ int markJump(const GameState &pState, uint8_t myPlayer) {
         std::cerr << " " << '\n';
     }
     else ; // no jump
-    return num;
+    return num*100;
 }
 
 int markEnd(const GameState &pState, uint8_t myPlayer) {
@@ -192,7 +192,7 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     int opPiece = 0;
     int myKing = 0;
     int opKing = 0;
-    std::cerr << "mark " ;
+    //std::cerr << "mark " ;
 
     for (int i = 0; i < pState.cSquares; ++i) {
         if (pState.at(i) & myPlayer) {
@@ -220,7 +220,7 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     sumMark -= 100 * opKing;
 
     // mark for jump: no improve in kattis
-    //sumMark += markJump(pState, myPlayer);
+    sumMark += markJump(pState, myPlayer);
     /*std::cerr << "mark from jump " << buff << '\n'; //*/
 
     // mark for end game kattis +++
@@ -236,16 +236,17 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     else
         whiteMap[key] = sumMark;
 
-    std::cerr << sumMark << '\n';
+    //std::cerr << "sum mark: " <<sumMark << '\n';
     return sumMark;
 }
 
-int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint8_t player, uint8_t myStand)
+int minmaxAlphaBeta(const GameState &pState,int depth, int max_layer, int alpha, int beta, uint8_t player, uint8_t myStand)
 {
     std::vector<GameState> lNextStates;
     pState.findPossibleMoves(lNextStates);
 
     int v = 0;
+    int index =0;
     if (depth == 0 || lNextStates.size() == 0)
         v = eval(pState, myStand);
     else{
@@ -254,26 +255,31 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
         	v = INT_MIN;
         	for (size_t i=0; i<lNextStates.size(); i++){
                 int tmp = v;
-        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getOtherPlayer(player), myStand));
-        		if (v != tmp){
+        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, max_layer,alpha, beta, getOtherPlayer(player), myStand));
+                if (v != tmp){
                     index = i;
                 }
                 alpha = std::max(alpha,v);
         		if (beta <= alpha)
         			break;
-        	}
+            }
         }
         else if(player != myStand){
         	v = INT_MAX;
         	for (size_t i=0; i<lNextStates.size(); i++){
-        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getOtherPlayer(player), myStand));
+        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1, max_layer, alpha, beta, getOtherPlayer(player), myStand));
         		beta = std::min(beta,v);
         		if (beta <= alpha)
         			break;
         	}
         }
     }
-    return v;
+    if(depth != max_layer){
+        return v;
+    }
+    else{
+        return index;
+    }
 }
 
 GameState ids(const GameState &pState,const Deadline &pDue){
@@ -282,24 +288,25 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     pState.findPossibleMoves(lNextStates);
 
     if (lNextStates.size() == 0) return GameState(pState, Move());
+    else if (lNextStates.size() == 1) return lNextStates[0];
 
     uint8_t player = pState.getNextPlayer(); // get current player
     std::cerr << "player " << unsigned(player) << '\n';
     std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
     int alpha = INT_MIN;
     int beta = INT_MAX;
-    int depth = 7;
-    int v =0;
+    int depth = 5;
+    int index = 0;
     while (true) {
-        if(depth > 20 || pDue.now() >pDue - 0.9){
+        if(depth > 20 || pDue.now() >pDue - 0.98){
             std::cerr << "list length "  << lNextStates.size()<< '\n';
             std::cerr << "break at depth = " << depth << '\n'; 
             break;
         }
-        v =minmaxAlphaBeta(pState, depth, alpha, beta, player, player);
+        index =minmaxAlphaBeta(pState, depth, depth, alpha, beta, player, player);
         depth += 2;
     }
-    std::cerr << "bestValue = "<< v << '\n'; 
+    //std::cerr << "bestValue = "<< v << '\n'; 
     std::cerr << "Best Id: " << index<< '\n'; 
     return lNextStates[index];
 
@@ -308,7 +315,7 @@ GameState ids(const GameState &pState,const Deadline &pDue){
 GameState Player::play(const GameState &pState,const Deadline &pDue)
 {
     //std::cerr << "Processing " << pState.toMessage() << std::endl;
-
+    Zobrist_init(); // init hash key
     /*if (lNextStates.size() > 50) {
         depth = 0;
     }
