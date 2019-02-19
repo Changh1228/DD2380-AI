@@ -286,7 +286,7 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
     int alpha = INT_MIN;
     int beta = INT_MAX;
-    int depth = 5;
+    int depth = 3;
     int v = 0;
     int index =0;
     std::map <int,int,std::greater<int>> indexMap, indexMapTmp;
@@ -298,9 +298,9 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     // }
 
     indexMap.clear();
-    
+
     for (int i =0; i< lNextStates.size(); i++){   
-        v =minmaxAlphaBeta(lNextStates[indexMap[i]], 0, alpha, beta, getOtherPlayer(player), player);
+        v =minmaxAlphaBeta(lNextStates[i], 1, alpha, beta, getOtherPlayer(player), player);
         int valueToInsert = v;
         while(true){
                 std::map<int,int>::iterator it = indexMap.find(valueToInsert);
@@ -310,11 +310,9 @@ GameState ids(const GameState &pState,const Deadline &pDue){
                     break;
         }
         indexMap[valueToInsert]=i;
-         std::cerr << "index "<<valueToInsert << " " <<i <<std::endl;
+        //std::cerr << "index "<<valueToInsert << " " <<i <<std::endl;
     }
-    for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
-        std::cerr << "indexMapHEREEERERE"<<i->first << " " <<i->second <<std::endl;
-    } 
+
     indexMapTmp = indexMap;
 
     while (true) {
@@ -324,10 +322,10 @@ GameState ids(const GameState &pState,const Deadline &pDue){
                 std::cerr << "break at depth = " << depth << '\n'; 
                 break;
         }
-
-        int indexToStore =0;
+        std::cerr << "Start new search ... " << '\n'; 
         indexMap.clear();
-        for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){   
+        for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){
+            std::cerr << "v = " << i->first <<"i = " << i->second << '\n'; 
             v =minmaxAlphaBeta(lNextStates[i->second], depth, alpha, beta, getOtherPlayer(player), player);
             int valueToInsert = v;
             while(true){
@@ -337,29 +335,26 @@ GameState ids(const GameState &pState,const Deadline &pDue){
                 else
                     break;
             }
-            indexMap[valueToInsert]=indexToStore;
-            std::cerr << valueToInsert << " "<<indexToStore <<std::endl;
-            for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
-                std::cerr << "indexMap"<<i->first << " " <<i->second <<std::endl;
-            }    
-            for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){   
-                std::cerr << "indexMapTmp"<<i->first << " " <<i->second <<std::endl;
-            }
-            indexToStore ++;
+            indexMap[valueToInsert]=i->second;
+            // std::cerr << valueToInsert << " "<<indexToStore <<std::endl;
+            // for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+            //     std::cerr << "indexMap"<<i->first << " " <<i->second <<std::endl;
+            // }    
+            // for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){   
+            //     std::cerr << "indexMapTmp"<<i->first << " " <<i->second <<std::endl;
+            // }
         }
         indexMapTmp = indexMap;
         // std::copy(std::begin(valueList), std::end(valueList), std::begin(indexList));
         // std::sort(std::begin(valueList), std::end(valueList));
         depth += 2;
     }
-    for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){
-        index = i->second;
-        break;
-    }
+    std::map<int, int>::iterator i = indexMap.begin();
+    index = i->second;
 
-    for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
-        std::cerr << i->first << " " <<i->second <<std::endl;
-    }
+    // for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+    //     std::cerr << i->first << " " <<i->second <<std::endl;
+    // }
     //std::cerr << "bestValue = "<< v << '\n'; 
     std::cerr << "Best Id: " << index<< '\n'; 
     return lNextStates[index];
