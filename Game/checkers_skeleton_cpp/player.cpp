@@ -57,6 +57,7 @@ Zobrist Zobrist_init() {
     return Zobrist;
 }
 Zobrist Zobrist = Zobrist_init();
+
 uint8_t getOtherPlayer(uint8_t player){
     return (player == CELL_RED) ? CELL_WHITE : CELL_RED;
 }
@@ -117,40 +118,40 @@ int markSide(const GameState &pState, uint8_t myPlayer) {
             --sum;
         }
     }
-    return sum*3;
+    return sum;
 }
 
 int markProtect(const GameState &pState, uint8_t myPlayer) {
-    int redUnPro = 0;
-    int whiteUnPro = 0;
+    int redPro = 0;
+    int whitePro = 0;
     for (auto i : lsRow) {
         if (pState.at(i) & CELL_RED) {
             if ((pState.at(i-4) & CELL_RED) || (pState.at(i-5) & CELL_RED)) {
-                ++redUnPro;
+                ++redPro;
             }
         }
         else if (pState.at(i) & CELL_WHITE) {
             if ((pState.at(i+4) & CELL_WHITE) || (pState.at(i+3) & CELL_WHITE)) {
-                ++whiteUnPro;
+                ++whitePro;
             }
         }
     }
     for (auto i :rsRow) {
         if (pState.at(i) & CELL_RED) {
             if ((pState.at(i-4) & CELL_RED) || (pState.at(i-3) & CELL_RED)) {
-                ++redUnPro;
+                ++redPro;
             }
         }
         else if (pState.at(i) & CELL_WHITE) {
             if ((pState.at(i+4) & CELL_WHITE) || (pState.at(i+5) & CELL_WHITE)) {
-                ++whiteUnPro;
+                ++whitePro;
             }
         }
     }
     if (myPlayer == CELL_RED)
-        return (whiteUnPro - redUnPro);
+        return (redPro-whitePro);
     else
-        return (redUnPro - whiteUnPro);
+        return (whitePro-redPro);
 }
 
 uint_fast64_t calHashKey(const GameState &pState) {
@@ -224,17 +225,17 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     sumMark -= 100 * opKing;
 
     // mark for jump: no improve in kattis
-    //sumMark += markJump(pState, myPlayer);
+    sumMark += markJump(pState, myPlayer);
     /*std::cerr << "mark from jump " << buff << '\n'; //*/
 
     // mark for end game kattis +++
     sumMark += markEnd(pState, myPlayer);
 
     // mark for accupy side for defence kattis +
-    sumMark += markSide(pState, myPlayer);
+    //sumMark += markSide(pState, myPlayer);
 
     // mark for unprotected pieces kattis +
-    sumMark += markProtect(pState, myPlayer);
+    //sumMark += markProtect(pState, myPlayer);
 
     sumMark = (sumMark*10);
     if (myPlayer & CELL_RED) // add value to the map
@@ -324,7 +325,7 @@ GameState ids(const GameState &pState,const Deadline &pDue){
 
     while (true) {
 
-        if(depth > 15 || pDue.now() >pDue - 0.98){
+        if(depth > 20 || pDue.now() >pDue - 0.98){
 
                 std::cerr << "break at depth = " << depth << '\n';
                 for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){
@@ -374,7 +375,7 @@ GameState ids(const GameState &pState,const Deadline &pDue){
 GameState Player::play(const GameState &pState,const Deadline &pDue)
 {
     //std::cerr << "Processing " << pState.toMessage() << std::endl;
-    Zobrist_init(); // init hash key
+    //Zobrist_init(); // init hash key
     /*if (lNextStates.size() > 50) {
         depth = 0;
     }
