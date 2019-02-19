@@ -26,11 +26,12 @@ struct Zobrist {
     uint_fast64_t nextRed;
     uint_fast64_t nextWhite;
     //uint_fast64_t initState;
-} Zobrist;
+};
 
-void Zobrist_init() {
+Zobrist Zobrist_init() {
     std::random_device rd;
     std::mt19937_64 mt(rd());
+    Zobrist Zobrist;
 
     for (size_t i = 0; i < 32; i++) {
         Zobrist.whitePiece[i] = mt();
@@ -53,7 +54,9 @@ void Zobrist_init() {
     for(size_t i = 20; i < 32; i++) { // white piece is in case 20-31
         Zobrist.initState = Zobrist.initState ^ Zobrist.whitePiece[i];
     }*/
+    return Zobrist;
 }
+Zobrist Zobrist = Zobrist_init();
 uint8_t getOtherPlayer(uint8_t player){
     return (player == CELL_RED) ? CELL_WHITE : CELL_RED;
 }
@@ -114,7 +117,7 @@ int markSide(const GameState &pState, uint8_t myPlayer) {
             --sum;
         }
     }
-    return sum;
+    return sum*3;
 }
 
 int markProtect(const GameState &pState, uint8_t myPlayer) {
@@ -221,7 +224,7 @@ int eval(const GameState &pState, uint8_t myPlayer) {
     sumMark -= 100 * opKing;
 
     // mark for jump: no improve in kattis
-    sumMark += markJump(pState, myPlayer);
+    //sumMark += markJump(pState, myPlayer);
     /*std::cerr << "mark from jump " << buff << '\n'; //*/
 
     // mark for end game kattis +++
@@ -232,6 +235,8 @@ int eval(const GameState &pState, uint8_t myPlayer) {
 
     // mark for unprotected pieces kattis +
     sumMark += markProtect(pState, myPlayer);
+
+    sumMark = (sumMark*10);
     if (myPlayer & CELL_RED) // add value to the map
         redMap[key] = sumMark;
     else
@@ -250,31 +255,31 @@ int minmaxAlphaBeta(const GameState &pState,int depth, int alpha, int beta, uint
     if (depth == 0 || lNextStates.size() == 0)
         v = eval(pState, myStand);
     else{
-        //std::cerr << "layer "<< DEPTH - depth +2<<" child num "<< lNextStates.size() << '\n'; 
+        //std::cerr << "layer "<< DEPTH - depth +2<<" child num "<< lNextStates.size() << '\n';
         if (player == myStand){
-        	v = INT_MIN;
-        	for (size_t i=0; i<lNextStates.size(); i++){
-        		v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getOtherPlayer(player), myStand));
+            v = INT_MIN;
+            for (size_t i=0; i<lNextStates.size(); i++){
+                v = std::max(v,minmaxAlphaBeta(lNextStates[i], depth-1, alpha, beta, getOtherPlayer(player), myStand));
                 alpha = std::max(alpha,v);
-        		if (beta <= alpha)
-        			break;
+                if (beta <= alpha)
+                    break;
             }
         }
         else if(player != myStand){
-        	v = INT_MAX;
-        	for (size_t i=0; i<lNextStates.size(); i++){
-        		v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1,alpha, beta, getOtherPlayer(player), myStand));
-        		beta = std::min(beta,v);
-        		if (beta <= alpha)
-        			break;
-        	}
+            v = INT_MAX;
+            for (size_t i=0; i<lNextStates.size(); i++){
+                v = std::min(v,minmaxAlphaBeta(lNextStates[i], depth-1,alpha, beta, getOtherPlayer(player), myStand));
+                beta = std::min(beta,v);
+                if (beta <= alpha)
+                    break;
+            }
         }
     }
     return v;
 }
 
 GameState ids(const GameState &pState,const Deadline &pDue){
-    
+
     std::vector<GameState> lNextStates;
     pState.findPossibleMoves(lNextStates);
 
@@ -282,14 +287,15 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     else if (lNextStates.size() == 1) return lNextStates[0];
 
     uint8_t player = pState.getNextPlayer(); // get current player
+    std::cerr << "new round" << '\n';
     std::cerr << "player " << unsigned(player) << '\n';
-    std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
+    //std::cerr << "child num "<< lNextStates.size() << '\n'; //*/
     int alpha = INT_MIN;
     int beta = INT_MAX;
-    int depth = 3;
+    int depth = 4;
     int v = 0;
     int index =0;
-    std::map <int,int,std::greater<int>> indexMap, indexMapTmp;
+    std::map <int,int,std::greater<int> > indexMap, indexMapTmp;
     // int valueList[lNextStates.size()];
     // int indexList[lNextStates.size()];
     // for (int m =0; m < lNextStates.size(); m++){
@@ -299,48 +305,52 @@ GameState ids(const GameState &pState,const Deadline &pDue){
 
     indexMap.clear();
 
-    for (int i =0; i< lNextStates.size(); i++){   
+    for (size_t i =0; i< lNextStates.size(); i++){
         v =minmaxAlphaBeta(lNextStates[i], 1, alpha, beta, getOtherPlayer(player), player);
         int valueToInsert = v;
         while(true){
                 std::map<int,int>::iterator it = indexMap.find(valueToInsert);
                 if (it != indexMap.end())
-                    valueToInsert +=1; 
+                    valueToInsert -=1;
                 else
                     break;
         }
         indexMap[valueToInsert]=i;
-        //std::cerr << "index "<<valueToInsert << " " <<i <<std::endl;
+        std::cerr << " init index "<<valueToInsert << " " <<i <<std::endl;
     }
+    std::cerr << "list length "  << lNextStates.size()<< '\n';
 
     indexMapTmp = indexMap;
 
     while (true) {
 
-        if(depth > 20 || pDue.now() >pDue - 0.98){
-                std::cerr << "list length "  << lNextStates.size()<< '\n';
-                std::cerr << "break at depth = " << depth << '\n'; 
+        if(depth > 15 || pDue.now() >pDue - 0.98){
+
+                std::cerr << "break at depth = " << depth << '\n';
+                for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){
+                    std::cerr << "v = " << i->first <<" i = " << i->second << '\n';
+                }
                 break;
         }
-        std::cerr << "Start new search ... " << '\n'; 
+        std::cerr << "Start new search depth= "<< depth << '\n';
         indexMap.clear();
         for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){
-            std::cerr << "v = " << i->first <<"i = " << i->second << '\n'; 
+            std::cerr << "v = " << i->first <<" i = " << i->second << '\n';
             v =minmaxAlphaBeta(lNextStates[i->second], depth, alpha, beta, getOtherPlayer(player), player);
             int valueToInsert = v;
             while(true){
                 std::map<int,int>::iterator it = indexMap.find(valueToInsert);
                 if (it != indexMap.end())
-                    valueToInsert +=1; 
+                    valueToInsert -=1;
                 else
                     break;
             }
             indexMap[valueToInsert]=i->second;
             // std::cerr << valueToInsert << " "<<indexToStore <<std::endl;
-            // for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+            // for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){
             //     std::cerr << "indexMap"<<i->first << " " <<i->second <<std::endl;
-            // }    
-            // for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){   
+            // }
+            // for (std::map<int, int>::iterator i = indexMapTmp.begin(); i != indexMapTmp.end(); i++){
             //     std::cerr << "indexMapTmp"<<i->first << " " <<i->second <<std::endl;
             // }
         }
@@ -352,11 +362,11 @@ GameState ids(const GameState &pState,const Deadline &pDue){
     std::map<int, int>::iterator i = indexMap.begin();
     index = i->second;
 
-    // for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){   
+    // for (std::map<int, int>::iterator i = indexMap.begin(); i != indexMap.end(); i++){
     //     std::cerr << i->first << " " <<i->second <<std::endl;
     // }
-    //std::cerr << "bestValue = "<< v << '\n'; 
-    std::cerr << "Best Id: " << index<< '\n'; 
+    //std::cerr << "bestValue = "<< v << '\n';
+    std::cerr << "Best Id: " << index<< '\n';
     return lNextStates[index];
 
 }

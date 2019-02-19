@@ -1,7 +1,7 @@
 # Client c++ for checkers dd2380
 
 # Compile
-g++ -std=c++11 *.cpp -Wall -o checkers
+g++ *.cpp -Wall -o checkers
 
 # Run
 # The players use standard input and output to communicate
